@@ -1,4 +1,4 @@
-# crypto-trading-bot-site
+# crypto-trading-bot-api
 
 TODO
 
