@@ -1,0 +1,15 @@
+# ENV
+ENV:
+
+# DB
+DB_DSN:
+
+# Http
+HTTP_PORT:
+
+# Notification
+DEFAULT_SENDER_PLATFORM:
+TELEGRAM_TOKEN:
+
+# For maintenance
+ADMIN_CHAT_ID:
