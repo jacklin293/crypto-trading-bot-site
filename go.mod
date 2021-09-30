@@ -6,7 +6,6 @@ require (
 	github.com/gin-gonic/gin v1.7.4
 	github.com/shopspring/decimal v1.2.0
 	github.com/spf13/viper v1.9.0
-	gopkg.in/errgo.v2 v2.1.0
 	gorm.io/datatypes v1.0.2
 	gorm.io/driver/mysql v1.1.2
 	gorm.io/gorm v1.21.15
