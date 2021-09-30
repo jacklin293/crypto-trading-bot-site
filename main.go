@@ -1,28 +1,22 @@
 package main
 
 import (
+	"crypto-trading-bot-api/controller"
 	"fmt"
-	"log"
-
-	"crypto-trading-bot-api/db"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 )
 
-func main() {
+func init() {
 	// Read config
 	loadConfig()
+}
 
-	// Connect to DB
-	db, err := db.NewDB(viper.GetString("DB_DSN"))
-	if err != nil {
-		log.Fatal(err)
-	}
-	_ = db // FIXME
-
+func main() {
 	r := gin.Default()
-	setRouter(r)
+	controller := controller.InitController()
+	setRouter(r, controller)
 	r.Run(fmt.Sprintf(":%s", viper.GetString("HTTP_PORT")))
 }
 
