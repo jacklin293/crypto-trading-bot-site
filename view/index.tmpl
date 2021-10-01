@@ -1,12 +1,26 @@
 {{ template "header.tmpl" .}}
 <main class="container">
+    {{ if eq .error "" }}
+    <div class="row rounded mb-3">
+        <div class="col">
+            <div class="alert alert-danger" role="alert">
+                {{ .error }}
+            </div>
+        </div>
+    </div>
+    {{ end }}
     <div class="row rounded mb-3">
         <div class="col">
             {{ range $i, $s := .strategies}}
-            {{ if or (eq $s.PositionStatus 1) (eq $s.PositionStatus 2) }}
             <!-- position position status 1-->
-            <div class="card mb-2">
-                <div class="card-header">
+            {{ $borderColor := "border-secondary" }}
+            {{ if eq $s.PositionStatus 2 }}
+                {{ $borderColor = "border-danger" }}
+            {{ else if eq $s.PositionStatus 1 }}
+                {{ $borderColor = "border-warning" }}
+            {{ end }}
+            <div class="card {{ $borderColor }} mb-2">
+                <div class="card-header bg-light">
                     <!-- exchange -->
                     <span class="align-middle">
                         {{if eq $s.Exchange "FTX" }}
@@ -29,7 +43,7 @@
                                 <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5z"/>
                             </svg>
                             <!-- leverage -->
-                            <span class="align-middle">${{$s.Margin}}</span>
+                            <span class="align-middle">{{$s.Leverage}}x</span>
                         </span>
                         {{ end }}
                         {{if eq $s.Side 0}}
@@ -38,15 +52,20 @@
                                 <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0zm10 11.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-1 0v2.6l-3.613-4.417a.5.5 0 0 0-.74-.037L7.06 8.233 3.404 3.206a.5.5 0 0 0-.808.588l4 5.5a.5.5 0 0 0 .758.06l2.609-2.61L13.445 11H10.5a.5.5 0 0 0-.5.5z"/>
                             </svg>
                             <!-- leverage -->
-                            <span class="align-middle">${{$s.Margin}}</span>
+                            <span class="align-middle">{{$s.Leverage}}x</span>
                         </span>
                         {{ end }}
                     </span>
 
                     <span class="float-end align-middle">
+                        {{if eq $s.PositionStatus 1}}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle-fill text-warning" viewBox="0 0 16 16">
+                          <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                        </svg>
+                        {{ end }}
                         {{if eq $s.PositionStatus 2}}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-circle-fill text-danger" viewBox="0 0 16 16">
-                          <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-question-circle-fill text-danger" viewBox="0 0 16 16">
+                          <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.496 6.033h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286a.237.237 0 0 0 .241.247zm2.325 6.443c.61 0 1.029-.394 1.029-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94 0 .533.425.927 1.01.927z"/>
                         </svg>
                         {{ end }}
                         {{if eq $s.Enabled 1}}
@@ -60,27 +79,36 @@
                         </svg>
                         {{ end }}
 
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear text-secondary" viewBox="0 0 16 16">
                             <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
                             <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
                         </svg>
 
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-share" viewBox="0 0 16 16">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-share text-secondary" viewBox="0 0 16 16">
                             <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
                         </svg>
 
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="0 0 16 16">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical text-secondary" viewBox="0 0 16 16">
                             <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
                         </svg>
                     </span>
                 </div>
-                <div class="card-body p-2">
+                <div class="card-body bg-light p-2">
                     <!-- open position -->
                     <div class="row">
-                        <div class="col col-8 ln-h">
+                        <div class="col col-12 ln-h">
                             <div class="ms-2">
                                 <span class="align-middle me-1"><small class="fw-lighter text-muted">標</small> <span class="text-danger fw-bold">$47,254 (todo)</span></span>
-                                <span class="align-middle me-1"><small class="fw-lighter text-muted">開</small> <span class="text-black text-opacity-75">{{$s.EntryPrice}}</span></span>
+                                <span class="align-middle me-1">
+                                    <small class="fw-lighter text-muted">開</small>
+                                    <span class="text-black text-opacity-75">
+                                        {{ if eq $s.PositionStatus 1 }}
+                                            ${{$s.BoughtPrice}}
+                                        {{ else }}
+                                            ${{$s.EntryPrice}}
+                                        {{ end }}
+                                    </span>
+                                </span>
                             </div>
                             <div class="ms-2">
                                 <!-- take profit -->
@@ -88,111 +116,39 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-bar-up text-secondary text-opacity-75" viewBox="0 0 16 16">
                                         <path fill-rule="evenodd" d="M3.646 11.854a.5.5 0 0 0 .708 0L8 8.207l3.646 3.647a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 0 0 0 .708zM2.4 5.2c0 .22.18.4.4.4h10.4a.4.4 0 0 0 0-.8H2.8a.4.4 0 0 0-.4.4z"/>
                                     </svg>
-                                    <span class="align-middle fw-lighter"> - </span>
+                                    <span class="align-middle fw-lighter">
+                                        {{ if eq $s.TakeProfit "" }}
+                                            -
+                                        {{ else }}
+                                            ${{ $s.TakeProfit }}
+                                        {{ end }}
+                                    </span>
                                 </span>
                                 <!-- stop loss -->
                                 <span class="align-middle me-1 small">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-bar-down text-secondary text-opacity-75" viewBox="0 0 16 16">
                                         <path fill-rule="evenodd" d="M3.646 4.146a.5.5 0 0 1 .708 0L8 7.793l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708zM1 11.5a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5z"/>
                                     </svg>
-                                    <span class="align-middle fw-lighter">$35,400</span>
+                                    <span class="align-middle fw-lighter">
+                                        {{ if eq $s.StopLoss "" }}
+                                            -
+                                        {{ else }}
+                                            ${{ $s.StopLoss }}
+                                        {{ end }}
+                                    </span>
                                 </span>
                             </div>
                         </div>
+                        <!--
+                        When uncomment here, need to adjust above col lenght back to col-8
                         <div class="col col-4 text-end ln-2">
                             <div><span class="align-middle text-success fw-bold">+123.6%</span></div>
                             <div><span class="align-middle text-success small">+46.96</span></div>
                         </div>
+                        -->
                     </div>
                 </div>
             </div>
-            {{ end }}
-
-            {{ if eq $s.PositionStatus 0 }}
-            <!-- strategy position status 0 -->
-            <div class="card mb-2">
-                <div class="card-header">
-                    <!-- exchange -->
-                    <span class="align-middle">
-                        {{if eq $s.Exchange "FTX" }}
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000.03 1739.27" width="20" height="20">
-                            <defs><style>.cls-1{fill:#02a6c2;}.cls-2{fill:#5fcade;}.cls-3{fill:#abebf4;}</style></defs><title>ftx-logo</title><g id="Layer_2" data-name="Layer 2"><g id="Layer_1-2" data-name="Layer 1"><path class="cls-1" d="M565.41.11q717.21-.22,1434.51,0,.22,231.83,0,463.58-717.23.22-1434.51,0Q565.18,231.86,565.41.11Z"/><path class="cls-2" d="M.6,638.1q231.39-1.2,462.86,0,1.2,231.39,0,462.86Q232,1102.15.6,1101-.6,869.57.6,638.1Z"/><path class="cls-2" d="M565.77,638.1q517.67-1.1,1035.27,0,1.1,231.39,0,462.86-517.66,1.08-1035.27,0Q564.69,869.56,565.77,638.1Z"/><path class="cls-3" d="M566.2,1276.23q231-2.51,461.92,0,2.4,230.85.07,461.92-231,2.28-461.91-.08Q563.88,1507.24,566.2,1276.23Z"/></g></g>
-                        </svg>
-                        {{ end }}
-                    </span>
-
-                    <!-- pair -->
-                    <span class="align-middle">
-                        <span class="font-monospace lh-sm fw-bold align-middle px-1 text-black text-opacity-75">{{$s.SymbolPart1}}<small class="text-muted">/{{$s.SymbolPart2}}</small></span>
-                    </span>
-
-                    <!-- long or short -->
-                    <span class="align-middle">
-                        {{if eq $s.Side 1}}
-                        <span class="badge bg-success">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="bi bi-graph-up" viewBox="0 0 16 16">
-                                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5z"/>
-                            </svg>
-                            <!-- leverage -->
-                            <span class="align-middle">${{$s.Margin}}</span>
-                        </span>
-                        {{ end }}
-                        {{if eq $s.Side 0}}
-                        <span class="badge bg-danger">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="bi bi-graph-down" viewBox="0 0 16 16">
-                                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0zm10 11.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-1 0v2.6l-3.613-4.417a.5.5 0 0 0-.74-.037L7.06 8.233 3.404 3.206a.5.5 0 0 0-.808.588l4 5.5a.5.5 0 0 0 .758.06l2.609-2.61L13.445 11H10.5a.5.5 0 0 0-.5.5z"/>
-                            </svg>
-                            <!-- leverage -->
-                            <span class="align-middle">${{$s.Margin}}</span>
-                        </span>
-                        {{ end }}
-                    </span>
-
-                    <span class="float-end align-middle">
-                        {{if eq $s.PositionStatus 2}}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-circle-fill text-danger" viewBox="0 0 16 16">
-                          <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
-                        </svg>
-                        {{ end }}
-                        {{if eq $s.Enabled 1}}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-toggle-on text-primary" viewBox="0 0 16 16">
-                            <path d="M5 3a5 5 0 0 0 0 10h6a5 5 0 0 0 0-10H5zm6 9a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/>
-                        </svg>
-                        {{ end }}
-                        {{if eq $s.Enabled 0}}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-toggle-off text-secondary" viewBox="0 0 16 16">
-                            <path d="M11 4a4 4 0 0 1 0 8H8a4.992 4.992 0 0 0 2-4 4.992 4.992 0 0 0-2-4h3zm-6 8a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM0 8a5 5 0 0 0 5 5h6a5 5 0 0 0 0-10H5a5 5 0 0 0-5 5z"/>
-                        </svg>
-                        {{ end }}
-
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
-                            <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
-                            <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
-                        </svg>
-
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-share" viewBox="0 0 16 16">
-                            <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
-                        </svg>
-
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="0 0 16 16">
-                            <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
-                        </svg>
-                    </span>
-                </div>
-                <div class="card-body p-2">
-                    <div class="row">
-                        <div class="col col-8 ln-2">
-                            <div class="ms-2">
-                                <span class="align-middle me-1"><small class="fw-lighter text-muted">標</small> <span class="text-success fw-bold">$47,254</span></span>
-                                <span class="align-middle me-1"><small class="fw-lighter text-muted">買</small> <span class="text-black text-opacity-75">(Todo)</span></span>
-                            </div>
-                        </div>
-                        <div class="col col-4 text-end ln-2">
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {{end}}
             {{end}}
         </div>
     </div>

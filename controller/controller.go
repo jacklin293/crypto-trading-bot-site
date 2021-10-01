@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"crypto-trading-bot-api/model"
+	"crypto-trading-bot-engine/db"
 	"log"
 
 	"github.com/spf13/viper"
@@ -13,7 +13,7 @@ type Controller struct {
 
 func InitController() *Controller {
 	// Connect to DB
-	db, err := model.NewDB(viper.GetString("DB_DSN"))
+	db, err := db.NewDB(viper.GetString("DB_DSN"))
 	if err != nil {
 		log.Fatal(err)
 	}

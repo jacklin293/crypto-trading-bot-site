@@ -1,19 +1,23 @@
 package controller
 
 import (
-	"crypto-trading-bot-api/model"
+	"crypto-trading-bot-engine/db"
+	"crypto-trading-bot-engine/exchange"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
-	// "github.com/jacklin293/crypto-trading-bot-main/strategy/contract"
-	// "github.com/jacklin293/crypto-trading-bot-main/strategy/order"
+	"crypto-trading-bot-engine/strategy/contract"
+	"crypto-trading-bot-engine/strategy/order"
 
 	"github.com/gin-gonic/gin"
+	"github.com/shopspring/decimal"
 )
 
 type Strategy struct {
-	db *model.DB
+	db *db.DB
 }
 
 // for template
@@ -22,19 +26,47 @@ type StrategyTmpl struct {
 	SymbolPart1    string
 	SymbolPart2    string
 	Side           int64
+	Leverage       string
 	Margin         string
 	Enabled        int64
 	PositionStatus int64
 	EntryPrice     string
+	BoughtPrice    string
 	TakeProfit     string
 	StopLoss       string
 }
 
 func (s *Strategy) Index(c *gin.Context) {
-	css, _, err := s.db.GetContractStrategiesByUser("a8d59df4-47aa-4631-bbbc-42d4bb56d786")
+	userUuid := "a8d59df4-47aa-4631-bbbc-42d4bb56d786" // FIXME
+	exchangeName := "ftx"                              // FIXME
+	user, err := s.db.GetUserByUuid(userUuid)
 	if err != nil {
-		log.Println("GetContractStrategiesByUser , err: ", err)
-		c.JSON(http.StatusBadRequest, gin.H{"msg": err.Error()})
+		log.Println("strategy controller err: ", err)
+		c.HTML(http.StatusOK, "index.tmpl", gin.H{"error": "Internal Error"})
+		return
+	}
+
+	// New exchange
+	exchange, err := exchange.NewExchange(exchangeName, user.ExchangeApiInfo)
+	if err != nil {
+		log.Println("strategy controller err: ", err)
+		c.HTML(http.StatusOK, "index.tmpl", gin.H{"error": "Internal Error"})
+		return
+	}
+
+	// Get account info from exchange
+	info, err := exchange.GetAccountInfo()
+	if err != nil {
+		log.Println("strategy controller err: ", err)
+		c.HTML(http.StatusOK, "index.tmpl", gin.H{"error": "Internal Error"})
+		return
+	}
+
+	// Get user data
+	css, _, err := s.db.GetContractStrategiesByUser(userUuid)
+	if err != nil {
+		log.Println("strategy controller err: ", err)
+		c.HTML(http.StatusOK, "index.tmpl", gin.H{"error": "Internal Error"})
 		return
 	}
 
@@ -42,7 +74,6 @@ func (s *Strategy) Index(c *gin.Context) {
 	for _, cs := range css {
 		var st StrategyTmpl
 
-		// NOTE FIXME support other exchange
 		// Split symbol into 2 parts
 		symbol := strings.Split(cs.Symbol, "-")
 
@@ -50,28 +81,35 @@ func (s *Strategy) Index(c *gin.Context) {
 		if len(cs.ExchangeOrdersDetails) != 0 {
 			entryOrder, ok := cs.ExchangeOrdersDetails["entry_order"].(map[string]interface{})
 			if ok {
-				st.EntryPrice = entryOrder["price"].(string)
+				// position will show this price
+				st.BoughtPrice = entryOrder["price"].(string)
 			}
 		}
 
 		// entry price, stop-loss and take-profit
-		/*
-			if len(cs.Params) {
-				contract, err := contract.NewContract(order.Side(cs.Side), cs.Params)
-				if err != nil {
-					log.Println("NewContract err: ", err.Error())
-				}
-				st.EntryPrice = contract.EntryOrder.GetTrigger().GetPrice(time.Now())
+		if len(cs.Params) != 0 {
+			contract, err := contract.NewContract(order.Side(cs.Side), cs.Params)
+			if err != nil {
+				log.Println("strategy controller err: ", err)
+				c.HTML(http.StatusOK, "index.tmpl", gin.H{"error": "Internal Error"})
+				return
+			}
+			// This doesn't matter for position
+			st.EntryPrice = contract.EntryOrder.GetTrigger().GetPrice(time.Now()).Truncate(5).String()
 
-				if contract.StopLoss != nil {
-					st.StopLoss = contract.StopLoss.GetTrigger().GetPrice(time.Now())
-				}
-
-				if contract.TakeProfit != nil {
-					st.TakeProfit = contract.TakeProfit.GetTrigger().GetPrice(time.Now())
+			if contract.StopLossOrder != nil {
+				// If entry_type is baseline, stop-loss trigger will be filled after entry order triggered
+				stopLossTrigger := contract.StopLossOrder.GetTrigger()
+				if stopLossTrigger != nil {
+					st.StopLoss = stopLossTrigger.GetPrice(time.Now()).String()
+					fmt.Println(st.StopLoss)
 				}
 			}
-		*/
+
+			if contract.TakeProfitOrder != nil {
+				st.TakeProfit = contract.TakeProfitOrder.GetTrigger().GetPrice(time.Now()).String()
+			}
+		}
 
 		// (position status: 0)
 		// TODO
@@ -80,6 +118,7 @@ func (s *Strategy) Index(c *gin.Context) {
 		st.SymbolPart1 = symbol[0]
 		st.SymbolPart2 = symbol[1]
 		st.Side = cs.Side
+		st.Leverage = cs.Margin.Div(info["collateral"].(decimal.Decimal)).StringFixed(1)
 		st.Margin = cs.Margin.String()
 		st.Enabled = cs.Enabled
 		st.PositionStatus = cs.PositionStatus
