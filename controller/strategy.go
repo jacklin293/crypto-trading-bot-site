@@ -42,7 +42,7 @@ func (s *Strategy) Index(c *gin.Context) {
 	user, err := s.db.GetUserByUuid(userUuid)
 	if err != nil {
 		log.Println("strategy controller err: ", err)
-		c.HTML(http.StatusOK, "index.tmpl", gin.H{"error": "Internal Error"})
+		c.HTML(http.StatusOK, "index.html", gin.H{"error": "Internal Error"})
 		return
 	}
 
@@ -50,23 +50,24 @@ func (s *Strategy) Index(c *gin.Context) {
 	exchange, err := exchange.NewExchange(exchangeName, user.ExchangeApiInfo)
 	if err != nil {
 		log.Println("strategy controller err: ", err)
-		c.HTML(http.StatusOK, "index.tmpl", gin.H{"error": "Internal Error"})
+		c.HTML(http.StatusOK, "index.html", gin.H{"error": "Internal Error"})
 		return
 	}
 
 	// Get account info from exchange
-	info, err := exchange.GetAccountInfo()
+	// NOTE Dont block if ftx api server is down
+	var errMsg string
+	accountInfo, err := exchange.GetAccountInfo()
 	if err != nil {
 		log.Println("strategy controller err: ", err)
-		c.HTML(http.StatusOK, "index.tmpl", gin.H{"error": "Internal Error"})
-		return
+		errMsg = "FTX API server is down"
 	}
 
 	// Get user data
 	css, _, err := s.db.GetContractStrategiesByUser(userUuid)
 	if err != nil {
 		log.Println("strategy controller err: ", err)
-		c.HTML(http.StatusOK, "index.tmpl", gin.H{"error": "Internal Error"})
+		c.HTML(http.StatusOK, "index.html", gin.H{"error": "Internal Error"})
 		return
 	}
 
@@ -91,7 +92,7 @@ func (s *Strategy) Index(c *gin.Context) {
 			contract, err := contract.NewContract(order.Side(cs.Side), cs.Params)
 			if err != nil {
 				log.Println("strategy controller err: ", err)
-				c.HTML(http.StatusOK, "index.tmpl", gin.H{"error": "Internal Error"})
+				c.HTML(http.StatusOK, "index.html", gin.H{"error": "Internal Error"})
 				return
 			}
 			// This doesn't matter for position
@@ -111,6 +112,10 @@ func (s *Strategy) Index(c *gin.Context) {
 			}
 		}
 
+		if len(accountInfo) > 0 {
+			st.Leverage = cs.Margin.Div(accountInfo["collateral"].(decimal.Decimal)).StringFixed(1)
+		}
+
 		// (position status: 0)
 		// TODO
 
@@ -118,7 +123,6 @@ func (s *Strategy) Index(c *gin.Context) {
 		st.SymbolPart1 = symbol[0]
 		st.SymbolPart2 = symbol[1]
 		st.Side = cs.Side
-		st.Leverage = cs.Margin.Div(info["collateral"].(decimal.Decimal)).StringFixed(1)
 		st.Margin = cs.Margin.String()
 		st.Enabled = cs.Enabled
 		st.PositionStatus = cs.PositionStatus
@@ -126,8 +130,9 @@ func (s *Strategy) Index(c *gin.Context) {
 		strategyTmpls = append(strategyTmpls, st)
 	}
 
-	c.HTML(http.StatusOK, "index.tmpl", gin.H{
+	c.HTML(http.StatusOK, "index.html", gin.H{
 		"title":      "Strategy List",
 		"strategies": strategyTmpls,
+		"error":      errMsg,
 	})
 }

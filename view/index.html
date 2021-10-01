@@ -1,0 +1,251 @@
+{{ template "header.html" .}}
+<main class="container">
+    {{ if ne .error "" }}
+    <div class="row rounded mb-3">
+        <div class="col">
+            <div class="alert alert-danger" role="alert">
+                {{ .error }}
+            </div>
+        </div>
+    </div>
+    {{ end }}
+    <div class="row rounded mb-3">
+        <div class="col">
+            {{ range $i, $s := .strategies}}
+            <!-- position position status 1-->
+            {{ $borderColor := "border-secondary" }}
+            {{ if eq $s.PositionStatus 2 }}
+                {{ $borderColor = "border-warning" }}
+            {{ else if eq $s.PositionStatus 1 }}
+                {{ $borderColor = "border-info" }}
+            {{ end }}
+            <div class="card {{ $borderColor }} mb-3">
+                <div class="card-header bg-light">
+                    <!-- exchange -->
+                    <span class="align-middle">
+                        {{if eq $s.Exchange "FTX" }}
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2000.03 1739.27" width="20" height="20">
+                            <defs><style>.cls-1{fill:#02a6c2;}.cls-2{fill:#5fcade;}.cls-3{fill:#abebf4;}</style></defs><title>ftx-logo</title><g id="Layer_2" data-name="Layer 2"><g id="Layer_1-2" data-name="Layer 1"><path class="cls-1" d="M565.41.11q717.21-.22,1434.51,0,.22,231.83,0,463.58-717.23.22-1434.51,0Q565.18,231.86,565.41.11Z"/><path class="cls-2" d="M.6,638.1q231.39-1.2,462.86,0,1.2,231.39,0,462.86Q232,1102.15.6,1101-.6,869.57.6,638.1Z"/><path class="cls-2" d="M565.77,638.1q517.67-1.1,1035.27,0,1.1,231.39,0,462.86-517.66,1.08-1035.27,0Q564.69,869.56,565.77,638.1Z"/><path class="cls-3" d="M566.2,1276.23q231-2.51,461.92,0,2.4,230.85.07,461.92-231,2.28-461.91-.08Q563.88,1507.24,566.2,1276.23Z"/></g></g>
+                        </svg>
+                        {{ end }}
+                    </span>
+
+                    <!-- pair -->
+                    <span class="align-middle">
+                        <span class="font-monospace lh-sm fw-bold align-middle px-1 text-black text-opacity-75">{{$s.SymbolPart1}}<small class="text-muted">/{{$s.SymbolPart2}}</small></span>
+                    </span>
+
+                    <!-- long or short -->
+                    <span class="align-middle">
+                        {{if eq $s.Side 1}}
+                        <span class="badge bg-success">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="bi bi-graph-up" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5z"/>
+                            </svg>
+                            <!-- leverage -->
+                            {{ if ne $s.Leverage "" }}
+                            <span class="align-middle">{{$s.Leverage}}x</span>
+                            {{ end }}
+                        </span>
+                        {{ end }}
+                        {{if eq $s.Side 0}}
+                        <span class="badge bg-danger">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="bi bi-graph-down" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0zm10 11.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-1 0v2.6l-3.613-4.417a.5.5 0 0 0-.74-.037L7.06 8.233 3.404 3.206a.5.5 0 0 0-.808.588l4 5.5a.5.5 0 0 0 .758.06l2.609-2.61L13.445 11H10.5a.5.5 0 0 0-.5.5z"/>
+                            </svg>
+                            <!-- leverage -->
+                            {{ if ne $s.Leverage "" }}
+                            <span class="align-middle">{{$s.Leverage}}x</span>
+                            {{ end }}
+                        </span>
+                        {{ end }}
+                    </span>
+
+                    <!-- position status -->
+                    <span class="align-middle ms-1">
+                        {{if eq $s.PositionStatus 1}}
+                        <span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle-fill text-info" viewBox="0 0 16 16">
+                                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                            </svg>
+                        </span>
+                        {{ end }}
+                        {{if eq $s.PositionStatus 2}}
+                        <span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-triangle-fill text-warning" viewBox="0 0 16 16">
+                                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                            </svg>
+                        </span>
+                        {{ end }}
+                    </span>
+
+                    <!-- enabled/disabled status -->
+                    <span class="float-end align-middle">
+                        {{if eq $s.Enabled 1}}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-toggle-on text-primary" viewBox="0 0 16 16">
+                            <path d="M5 3a5 5 0 0 0 0 10h6a5 5 0 0 0 0-10H5zm6 9a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/>
+                        </svg>
+                        {{ end }}
+                        {{if eq $s.Enabled 0}}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-toggle-off text-secondary" viewBox="0 0 16 16">
+                            <path d="M11 4a4 4 0 0 1 0 8H8a4.992 4.992 0 0 0 2-4 4.992 4.992 0 0 0-2-4h3zm-6 8a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM0 8a5 5 0 0 0 5 5h6a5 5 0 0 0 0-10H5a5 5 0 0 0-5 5z"/>
+                        </svg>
+                        {{ end }}
+
+                        <span class="dropdown">
+                            <button class="btn btn-sm" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical text-secondary" viewBox="0 0 16 16">
+                                    <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                                </svg>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                                <!-- enable/disable -->
+                                {{if ne $s.PositionStatus 2 }}
+                                <li>
+                                    <a class="dropdown-item" href="#">
+                                        {{if eq $s.Enabled 0}}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-toggle-on text-primary" viewBox="0 0 16 16">
+                                            <path d="M5 3a5 5 0 0 0 0 10h6a5 5 0 0 0 0-10H5zm6 9a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/>
+                                        </svg>
+                                        <span class="align-middle ms-1">開</span>
+                                        {{ end }}
+                                        {{if eq $s.Enabled 1}}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-toggle-off text-secondary" viewBox="0 0 16 16">
+                                            <path d="M11 4a4 4 0 0 1 0 8H8a4.992 4.992 0 0 0 2-4 4.992 4.992 0 0 0-2-4h3zm-6 8a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM0 8a5 5 0 0 0 5 5h6a5 5 0 0 0 0-10H5a5 5 0 0 0-5 5z"/>
+                                        </svg>
+                                        <span class="align-middle ms-1">關</span>
+                                        {{ end }}
+                                    </a>
+                                </li>
+                                {{end}}
+
+                                <!-- close position -->
+                                {{if eq $s.Enabled 0}}
+                                {{if eq $s.PositionStatus 1}}
+                                <li>
+                                    <a class="dropdown-item" href="#">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-stop-circle text-secondary" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                            <path d="M5 6.5A1.5 1.5 0 0 1 6.5 5h3A1.5 1.5 0 0 1 11 6.5v3A1.5 1.5 0 0 1 9.5 11h-3A1.5 1.5 0 0 1 5 9.5v-3z"/>
+                                        </svg>
+                                        <span class="align-middle ms-1">平倉</span>
+                                    </a>
+                                </li>
+                                {{end}}
+                                {{end}}
+
+                                <!-- edit -->
+                                {{if ne $s.PositionStatus 2 }}
+                                {{if eq $s.Enabled 0}}
+                                <li>
+                                    <a class="dropdown-item" href="#">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-tools text-secondary" viewBox="0 0 16 16">
+                                            <path d="M1 0 0 1l2.2 3.081a1 1 0 0 0 .815.419h.07a1 1 0 0 1 .708.293l2.675 2.675-2.617 2.654A3.003 3.003 0 0 0 0 13a3 3 0 1 0 5.878-.851l2.654-2.617.968.968-.305.914a1 1 0 0 0 .242 1.023l3.356 3.356a1 1 0 0 0 1.414 0l1.586-1.586a1 1 0 0 0 0-1.414l-3.356-3.356a1 1 0 0 0-1.023-.242L10.5 9.5l-.96-.96 2.68-2.643A3.005 3.005 0 0 0 16 3c0-.269-.035-.53-.102-.777l-2.14 2.141L12 4l-.364-1.757L13.777.102a3 3 0 0 0-3.675 3.68L7.462 6.46 4.793 3.793a1 1 0 0 1-.293-.707v-.071a1 1 0 0 0-.419-.814L1 0zm9.646 10.646a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708zM3 11l.471.242.529.026.287.445.445.287.026.529L5 13l-.242.471-.026.529-.445.287-.287.445-.529.026L3 15l-.471-.242L2 14.732l-.287-.445L1.268 14l-.026-.529L1 13l.242-.471.026-.529.445-.287.287-.445.529-.026L3 11z"/>
+                                        </svg>
+                                        <span class="align-middle ms-1">修改</span>
+                                    </a>
+                                </li>
+                                {{ end }}
+                                {{ end }}
+
+                                <!-- delete -->
+                                {{if eq $s.Enabled 0}}
+                                <li>
+                                    <a class="dropdown-item" href="#">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash text-secondary" viewBox="0 0 16 16">
+                                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                                            <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                                        </svg>
+                                        <span class="align-middle ms-1">刪除</span>
+                                    </a>
+                                </li>
+                                {{ end }}
+
+                                <!-- reset -->
+                                {{if eq $s.Enabled 0}}
+                                <li>
+                                    <a class="dropdown-item" href="#">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-recycle text-secondary" viewBox="0 0 16 16">
+                                            <path d="M9.302 1.256a1.5 1.5 0 0 0-2.604 0l-1.704 2.98a.5.5 0 0 0 .869.497l1.703-2.981a.5.5 0 0 1 .868 0l2.54 4.444-1.256-.337a.5.5 0 1 0-.26.966l2.415.647a.5.5 0 0 0 .613-.353l.647-2.415a.5.5 0 1 0-.966-.259l-.333 1.242-2.532-4.431zM2.973 7.773l-1.255.337a.5.5 0 1 1-.26-.966l2.416-.647a.5.5 0 0 1 .612.353l.647 2.415a.5.5 0 0 1-.966.259l-.333-1.242-2.545 4.454a.5.5 0 0 0 .434.748H5a.5.5 0 0 1 0 1H1.723A1.5 1.5 0 0 1 .421 12.24l2.552-4.467zm10.89 1.463a.5.5 0 1 0-.868.496l1.716 3.004a.5.5 0 0 1-.434.748h-5.57l.647-.646a.5.5 0 1 0-.708-.707l-1.5 1.5a.498.498 0 0 0 0 .707l1.5 1.5a.5.5 0 1 0 .708-.707l-.647-.647h5.57a1.5 1.5 0 0 0 1.302-2.244l-1.716-3.004z"/>
+                                        </svg>
+                                        <span class="align-middle ms-1">重置</span>
+                                    </a>
+                                </li>
+                                {{ end }}
+
+                                <!-- share -->
+                                <!--
+                                <li>
+                                    <a class="dropdown-item" href="#">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-share text-secondary" viewBox="0 0 16 16">
+                                            <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
+                                        </svg>
+                                    </a>
+                                </li>
+                                -->
+                            </ul>
+                        </span>
+                    </span>
+                </div>
+                <!-- padding top and padding left -->
+                <div class="card-body bg-light pt-1 ps-2">
+                    <!-- open position -->
+                    <div class="row">
+                        <div class="col col-12 ln-h">
+                            <div class="ms-2">
+                                <span class="align-middle me-1"><small class="fw-lighter text-muted">標</small> <span class="text-danger fw-bold">$47,254 (todo)</span></span>
+                                <span class="align-middle me-1">
+                                    <small class="fw-lighter text-muted">開</small>
+                                    <span class="text-black text-opacity-75">
+                                        {{ if eq $s.PositionStatus 1 }}
+                                            ${{$s.BoughtPrice}}
+                                        {{ else }}
+                                            ${{$s.EntryPrice}}
+                                        {{ end }}
+                                    </span>
+                                </span>
+                            </div>
+                            <div class="ms-2">
+                                <!-- take profit -->
+                                <span class="align-middle me-1 small">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-bar-up text-secondary text-opacity-75" viewBox="0 0 16 16">
+                                        <path fill-rule="evenodd" d="M3.646 11.854a.5.5 0 0 0 .708 0L8 8.207l3.646 3.647a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 0 0 0 .708zM2.4 5.2c0 .22.18.4.4.4h10.4a.4.4 0 0 0 0-.8H2.8a.4.4 0 0 0-.4.4z"/>
+                                    </svg>
+                                    <span class="align-middle fw-lighter">
+                                        {{ if eq $s.TakeProfit "" }}
+                                            -
+                                        {{ else }}
+                                            ${{ $s.TakeProfit }}
+                                        {{ end }}
+                                    </span>
+                                </span>
+                                <!-- stop loss -->
+                                <span class="align-middle me-1 small">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-bar-down text-secondary text-opacity-75" viewBox="0 0 16 16">
+                                        <path fill-rule="evenodd" d="M3.646 4.146a.5.5 0 0 1 .708 0L8 7.793l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708zM1 11.5a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5z"/>
+                                    </svg>
+                                    <span class="align-middle fw-lighter">
+                                        {{ if eq $s.StopLoss "" }}
+                                            -
+                                        {{ else }}
+                                            ${{ $s.StopLoss }}
+                                        {{ end }}
+                                    </span>
+                                </span>
+                            </div>
+                        </div>
+                        <!--
+                        When uncomment here, need to adjust above col lenght back to col-8
+                        <div class="col col-4 text-end ln-2">
+                            <div><span class="align-middle text-success fw-bold">+123.6%</span></div>
+                            <div><span class="align-middle text-success small">+46.96</span></div>
+                        </div>
+                        -->
+                    </div>
+                </div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+</main>
+{{ template "footer.html" .}}
