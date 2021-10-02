@@ -2,7 +2,6 @@ package controller
 
 import (
 	"crypto-trading-bot-engine/exchange"
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -31,11 +30,10 @@ type StrategyTmpl struct {
 	StopLoss       string
 }
 
-// TODO check last_login_at
-
 func (ctl *Controller) StrategyList(c *gin.Context) {
-	userUuid := "a8d59df4-47aa-4631-bbbc-42d4bb56d786" // FIXME
-	exchangeName := "ftx"                              // FIXME
+	ctl.tokenAuthCheck(c)
+
+	userUuid := ctl.user["uuid"].(string)
 	user, err := ctl.db.GetUserByUuid(userUuid)
 	if err != nil {
 		log.Println("strategy controller err: ", err)
@@ -44,7 +42,7 @@ func (ctl *Controller) StrategyList(c *gin.Context) {
 	}
 
 	// New exchange
-	exchange, err := exchange.NewExchange(exchangeName, user.ExchangeApiInfo)
+	exchange, err := exchange.NewExchange("ftx", user.ExchangeApiInfo)
 	if err != nil {
 		log.Println("strategy controller err: ", err)
 		c.HTML(http.StatusOK, "index.html", gin.H{"error": "Internal Error"})
@@ -100,7 +98,6 @@ func (ctl *Controller) StrategyList(c *gin.Context) {
 				stopLossTrigger := contract.StopLossOrder.GetTrigger()
 				if stopLossTrigger != nil {
 					st.StopLoss = stopLossTrigger.GetPrice(time.Now()).String()
-					fmt.Println(st.StopLoss)
 				}
 			}
 
@@ -127,9 +124,10 @@ func (ctl *Controller) StrategyList(c *gin.Context) {
 		strategyTmpls = append(strategyTmpls, st)
 	}
 
-	c.HTML(http.StatusOK, "index.html", gin.H{
+	c.HTML(http.StatusOK, "strategy_list.html", gin.H{
 		"title":      "Strategy List",
 		"strategies": strategyTmpls,
 		"error":      errMsg,
+		"loggedIn":   true,
 	})
 }

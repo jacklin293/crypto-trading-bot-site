@@ -7,7 +7,6 @@ import (
 )
 
 func setRouter(r *gin.Engine, c *controller.Controller) {
-
 	// Static files
 	r.Static("/assets", "assets")
 
@@ -17,15 +16,12 @@ func setRouter(r *gin.Engine, c *controller.Controller) {
 	// Health check
 	r.GET("/ping", c.Ping)
 
-	// Login
-	r.GET("/login", c.LoginGET)
-	r.POST("/login", c.LoginPOST)
+	// Account
+	r.GET("/login", c.LoginPage)
+	r.POST("/login", c.LoginAPI)
 	r.POST("/otp", c.OTP)
+	r.GET("/logout", c.Logout)
 
-	// Logout
-	r.POST("/logout", c.LogoutPOST)
-
-	// Home page
+	// strategy
 	r.GET("/", c.StrategyList)
-
 }

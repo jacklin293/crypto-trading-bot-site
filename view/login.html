@@ -1,25 +1,54 @@
 {{ template "header.html" .}}
 <main class="container">
+    {{ if ne .errType "" }}
+    <div class="row rounded mb-3">
+        <div class="col">
+            <div class="alert alert-danger" role="alert">
+                {{ if eq .errType "please_login" }}
+                    請先登入
+                {{ end }}
+                {{ if eq .errType "internal_error" }}
+                    內部錯誤, 請重新登入
+                {{ end }}
+                {{ if eq .errType "session_expired" }}
+                    距離你上次登入已過了一段時間, 請重新登入
+                {{ end }}
+                {{ if eq .errType "login_failed" }}
+                    帳號或密碼錯誤, 請重新登入
+                {{ end }}
+            </div>
+        </div>
+    </div>
+    {{ end }}
+    {{ if ne .success "" }}
+    <div class="row rounded mb-3">
+        <div class="col">
+            <div class="alert alert-success" role="alert">
+                已成功登出
+            </div>
+        </div>
+    </div>
+    {{ end }}
     <div class="row rounded mb-3">
         <div class="col col-8">
             <form id="login-form" action="/login" method="POST">
                 <div class="mb-3">
-                    <label class="form-label">Username</label>
+                    <label class="form-label">帳號</label>
                     <input type="input" class="form-control" name="username" id="username">
                 </div>
                 <div id="before-getting-otp" class="mb-3">
                     <button class="btn btn-primary" type="button" id="get-otp" data-action="get_otp">
                         <span id="otp-loading" class="spinner-border spinner-border-sm d-none me-1" role="status" aria-hidden="true"></span>
-                        <span id="otp-hint">發送一次性密碼</span>
+                        <span id="otp-hint">傳送一次性密碼</span>
                     </button>
                 </div>
                 <div id="after-getting-otp" class="d-none">
                     <div class="mb-3">
-                        <label class="form-label">One-time Password</label>
+                        <label class="form-label">密碼</label>
                         <input type="password" class="form-control" name="password">
                         <div class="form-text">
                             <span>請在時間內輸入密碼</span>
-                            <span id="countdown">(倒數180杪)</span>
+                            <span id="countdown">(倒數{{.otpExpirySecond}}杪)</span>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -55,7 +84,7 @@ $( document ).ready(function() {
     $('#get-otp').click(function() {
         $('#get-otp').prop('disabled', true);
         $('#otp-loading').removeClass('d-none');
-        $('#otp-hint').text('送出中');
+        $('#otp-hint').text('發送中');
 
         $.ajax({
             type: 'POST',
@@ -65,11 +94,11 @@ $( document ).ready(function() {
                 'g-recaptcha-response': $('#g-recaptcha-response').val()
             },
             success: function() {
-                var timeleft = 179;
+                var timeleft = {{.otpExpirySecond}}-1;
                 var counter = setInterval(function(){
                     if(timeleft <= 0){
                         clearInterval(counter);
-                        alert('請重整頁面並重試');
+                        alert('請重試');
                         location.reload();
                     }
                     $('#countdown').text('(倒數'+timeleft+'秒)');
@@ -80,7 +109,7 @@ $( document ).ready(function() {
                 $('#after-getting-otp').removeClass('d-none');
             },
         }).fail( function() {
-            alert('請重整頁面並重試');
+            alert('請重試');
             location.reload();
         });
     });
