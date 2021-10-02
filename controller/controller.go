@@ -3,12 +3,14 @@ package controller
 import (
 	"crypto-trading-bot-engine/db"
 	"log"
+	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 )
 
 type Controller struct {
-	Strategy *Strategy
+	db *db.DB
 }
 
 func InitController() *Controller {
@@ -18,12 +20,24 @@ func InitController() *Controller {
 		log.Fatal(err)
 	}
 
-	// Strategy
-	strategy := &Strategy{
+	return &Controller{
 		db: db,
 	}
+}
 
-	return &Controller{
-		Strategy: strategy,
-	}
+func failJSON(c *gin.Context, caller string, err error) {
+	log.Printf("[ERROR] %s err: %s", caller, err.Error())
+	c.JSON(http.StatusBadRequest, gin.H{
+		"success": false,
+		"error":   err.Error(),
+	})
+}
+
+// NOTE intentionally provide vague for security purpose
+func failJSONWithVagueError(c *gin.Context, caller string, err error) {
+	log.Printf("[ERROR] %s err: %s", caller, err.Error())
+	c.JSON(http.StatusBadRequest, gin.H{
+		"success": false,
+		"error":   "Internal error",
+	})
 }

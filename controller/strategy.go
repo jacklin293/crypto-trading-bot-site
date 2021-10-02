@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"crypto-trading-bot-engine/db"
 	"crypto-trading-bot-engine/exchange"
 	"fmt"
 	"log"
@@ -15,10 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
 )
-
-type Strategy struct {
-	db *db.DB
-}
 
 // for template
 type StrategyTmpl struct {
@@ -36,10 +31,12 @@ type StrategyTmpl struct {
 	StopLoss       string
 }
 
-func (s *Strategy) Index(c *gin.Context) {
+// TODO check last_login_at
+
+func (ctl *Controller) StrategyList(c *gin.Context) {
 	userUuid := "a8d59df4-47aa-4631-bbbc-42d4bb56d786" // FIXME
 	exchangeName := "ftx"                              // FIXME
-	user, err := s.db.GetUserByUuid(userUuid)
+	user, err := ctl.db.GetUserByUuid(userUuid)
 	if err != nil {
 		log.Println("strategy controller err: ", err)
 		c.HTML(http.StatusOK, "index.html", gin.H{"error": "Internal Error"})
@@ -64,7 +61,7 @@ func (s *Strategy) Index(c *gin.Context) {
 	}
 
 	// Get user data
-	css, _, err := s.db.GetContractStrategiesByUser(userUuid)
+	css, _, err := ctl.db.GetContractStrategiesByUser(userUuid)
 	if err != nil {
 		log.Println("strategy controller err: ", err)
 		c.HTML(http.StatusOK, "index.html", gin.H{"error": "Internal Error"})

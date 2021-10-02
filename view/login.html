@@ -1,0 +1,94 @@
+{{ template "header.html" .}}
+<main class="container">
+    <div class="row rounded mb-3">
+        <div class="col col-8">
+            <form id="login-form" action="/login" method="POST">
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="input" class="form-control" name="username" id="username">
+                </div>
+                <div id="before-getting-otp" class="mb-3">
+                    <button class="btn btn-primary" type="button" id="get-otp" data-action="get_otp">
+                        <span id="otp-loading" class="spinner-border spinner-border-sm d-none me-1" role="status" aria-hidden="true"></span>
+                        <span id="otp-hint">發送一次性密碼</span>
+                    </button>
+                </div>
+                <div id="after-getting-otp" class="d-none">
+                    <div class="mb-3">
+                        <label class="form-label">One-time Password</label>
+                        <input type="password" class="form-control" name="password">
+                        <div class="form-text">
+                            <span>請在時間內輸入密碼</span>
+                            <span id="countdown">(倒數180杪)</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <button type="submit" id="submit-button" class="btn btn-primary g-recaptcha" data-sitekey="{{.recaptchaSiteKey}}" data-callback="onSubmit" data-action="submit">送出</button>
+                        <div id="submit-loading" class="spinner-border text-primary d-none ms-3" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://www.google.com/recaptcha/api.js?render={{.recaptchaSiteKey}}"></script>
+<script>
+// submit
+function onSubmit(token) {
+    document.getElementById("login-form").submit();
+}
+
+// OTP
+$( document ).ready(function() {
+    // Must be loaded in the beginning
+    // This is just for '#get-otp' not for 'submit'
+    // NOTE: need to put site key after the recaptcha/api.js ('submit' doesn't need to)
+    grecaptcha.ready(function () {
+        grecaptcha.execute('{{.recaptchaSiteKey}}', { action: 'get_otp' }).then(function (token) {
+            $('#g-recaptcha-response').val(token);
+        });
+    })
+
+    $('#get-otp').click(function() {
+        $('#get-otp').prop('disabled', true);
+        $('#otp-loading').removeClass('d-none');
+        $('#otp-hint').text('送出中');
+
+        $.ajax({
+            type: 'POST',
+            url: '/otp',
+            data: {
+                'username': $('#username').val(),
+                'g-recaptcha-response': $('#g-recaptcha-response').val()
+            },
+            success: function() {
+                var timeleft = 179;
+                var counter = setInterval(function(){
+                    if(timeleft <= 0){
+                        clearInterval(counter);
+                        alert('請重整頁面並重試');
+                        location.reload();
+                    }
+                    $('#countdown').text('(倒數'+timeleft+'秒)');
+                    timeleft -= 1;
+                }, 1000);
+
+                $('#before-getting-otp').addClass('d-none');
+                $('#after-getting-otp').removeClass('d-none');
+            },
+        }).fail( function() {
+            alert('請重整頁面並重試');
+            location.reload();
+        });
+    });
+
+    $('#submit-button').click(function() {
+        $('#submit-button').addClass('d-none');
+        $('#submit-loading').removeClass('d-none');
+    });
+})
+</script>
+{{ template "footer.html" .}}

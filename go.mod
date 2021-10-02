@@ -7,9 +7,6 @@ require (
 	github.com/gin-gonic/gin v1.7.4
 	github.com/shopspring/decimal v1.2.0
 	github.com/spf13/viper v1.9.0
-	gorm.io/datatypes v1.0.2
-	gorm.io/driver/mysql v1.1.2
-	gorm.io/gorm v1.21.15
 )
 
 require (
@@ -44,8 +41,12 @@ require (
 	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf // indirect
 	golang.org/x/text v0.3.6 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
+	gopkg.in/ezzarghili/recaptcha-go.v4 v4.3.0 // indirect
 	gopkg.in/ini.v1 v1.63.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gorm.io/datatypes v1.0.2 // indirect
+	gorm.io/driver/mysql v1.1.2 // indirect
+	gorm.io/gorm v1.21.15 // indirect
 )
 
 replace crypto-trading-bot-engine => ../crypto-trading-bot-engine

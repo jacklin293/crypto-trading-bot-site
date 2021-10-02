@@ -15,8 +15,17 @@ func setRouter(r *gin.Engine, c *controller.Controller) {
 	r.LoadHTMLGlob("view/*")
 
 	// Health check
-	r.GET("/ping", controller.Ping)
+	r.GET("/ping", c.Ping)
+
+	// Login
+	r.GET("/login", c.LoginGET)
+	r.POST("/login", c.LoginPOST)
+	r.POST("/otp", c.OTP)
+
+	// Logout
+	r.POST("/logout", c.LogoutPOST)
 
 	// Home page
-	r.GET("/", c.Strategy.Index)
+	r.GET("/", c.StrategyList)
+
 }
