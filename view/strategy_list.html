@@ -1,10 +1,36 @@
 {{ template "header.html" .}}
 <main class="container">
+    {{ if ne .success "" }}
+    <div class="row rounded mb-3">
+        <div class="col">
+            <div class="alert alert-success" role="alert">
+                {{ if eq .success "login" }}
+                已成功登入
+                {{end}}
+                {{ if eq .success "strategy_created" }}
+                已成功新增策略
+                {{end}}
+            </div>
+        </div>
+    </div>
+    {{ end }}
+
     {{ if ne .error "" }}
     <div class="row rounded mb-3">
         <div class="col">
             <div class="alert alert-danger" role="alert">
                 {{ .error }}
+            </div>
+        </div>
+    </div>
+    {{ end }}
+
+    {{ $length := len .strategies }}
+    {{ if eq $length 0 }}
+    <div class="row rounded mb-3">
+        <div class="col">
+            <div class="alert alert-info" role="alert">
+                目前沒有任何策略
             </div>
         </div>
     </div>

@@ -16,6 +16,9 @@ func setRouter(r *gin.Engine, c *controller.Controller) {
 	// Health check
 	r.GET("/ping", c.Ping)
 
+	// Release log
+	r.GET("/releases", c.Releases)
+
 	// Account
 	r.GET("/login", c.LoginPage)
 	r.POST("/login", c.LoginAPI)
@@ -26,4 +29,5 @@ func setRouter(r *gin.Engine, c *controller.Controller) {
 	r.GET("/", c.StrategyList)
 	r.GET("/strategy/new_baseline", c.StrategyNewBaseline)
 	r.GET("/strategy/new_limit", c.StrategyNewLimit)
+	r.POST("/strategy", c.StrategyCreate)
 }

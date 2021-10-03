@@ -16,7 +16,12 @@ type Controller struct {
 	db     *db.DB
 	sender message.Messenger
 	store  *sessions.CookieStore
-	user   map[string]interface{}
+}
+
+type UserData struct {
+	Uuid           string
+	TelegramChatId int64
+	Username       string
 }
 
 func InitController() *Controller {
@@ -49,8 +54,7 @@ func InitController() *Controller {
 func failJSONWithVagueError(c *gin.Context, caller string, err error) {
 	log.Printf("[ERROR] %s err: %s", caller, err.Error())
 	c.JSON(http.StatusBadRequest, gin.H{
-		"success": false,
-		"error":   "Internal error",
+		"error": "Internal error",
 	})
 }
 
@@ -62,8 +66,7 @@ func (ctl *Controller) tokenAuthCheck(c *gin.Context) {
 		return
 	}
 
-	expiryTs, ok := session.Values["expiry_ts"].(int64)
-	if ok {
+	if expiryTs, ok := session.Values["expiry_ts"].(int64); ok {
 		if time.Now().Unix() > expiryTs {
 			ctl.redirectToLoginPage(c, "/login?err=session_expired")
 			return
@@ -73,14 +76,26 @@ func (ctl *Controller) tokenAuthCheck(c *gin.Context) {
 		return
 	}
 
-	uuid := session.Values["uuid"].(string)
-	chatId := session.Values["telegram_chat_id"].(int64)
-	username := session.Values["username"].(string)
+	if _, ok := session.Values["uuid"].(string); !ok {
+		ctl.redirectToLoginPage(c, "/login?err=please_login")
+		return
+	}
+	if _, ok := session.Values["telegram_chat_id"].(int64); !ok {
+		ctl.redirectToLoginPage(c, "/login?err=please_login")
+		return
+	}
+	if _, ok := session.Values["username"].(string); !ok {
+		ctl.redirectToLoginPage(c, "/login?err=please_login")
+		return
+	}
+}
 
-	ctl.user = map[string]interface{}{
-		"uuid":             uuid,
-		"telegram_chat_id": chatId,
-		"username":         username,
+func (ctl *Controller) getUserData(c *gin.Context) *UserData {
+	session, _ := ctl.store.Get(c.Request, "user-session")
+	return &UserData{
+		Uuid:           session.Values["uuid"].(string),
+		TelegramChatId: session.Values["telegram_chat_id"].(int64),
+		Username:       session.Values["username"].(string),
 	}
 }
 
