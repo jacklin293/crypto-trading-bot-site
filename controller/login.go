@@ -111,7 +111,7 @@ func (ctl *Controller) LoginAPI(c *gin.Context) {
 		return
 	}
 
-	ctl.redirectToLoginPage(c, "/")
+	ctl.redirectToLoginPage(c, "/?success=login")
 }
 
 // NOTE intentionally sleep 2 seconds for security purpose
