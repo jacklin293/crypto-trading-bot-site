@@ -1,0 +1,18 @@
+{{ template "header.html" .}}
+<main class="container">
+    {{ if ne .error "" }}
+    <div class="row rounded mb-3">
+        <div class="col">
+            <div class="alert alert-danger" role="alert">
+                {{ .error }}
+            </div>
+        </div>
+    </div>
+    {{ end }}
+    <div class="row rounded mb-3">
+        <div class="col">
+            strategy_new_limit
+        </div>
+    </div>
+</main>
+{{ template "footer.html" .}}

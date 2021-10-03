@@ -125,9 +125,24 @@ func (ctl *Controller) StrategyList(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "strategy_list.html", gin.H{
-		"title":      "Strategy List",
 		"strategies": strategyTmpls,
 		"error":      errMsg,
 		"loggedIn":   true,
+	})
+}
+
+func (ctl *Controller) StrategyNewBaseline(c *gin.Context) {
+	var errMsg string
+	c.HTML(http.StatusOK, "strategy_new_baseline.html", gin.H{
+		"error":    errMsg,
+		"loggedIn": true,
+	})
+}
+
+func (ctl *Controller) StrategyNewLimit(c *gin.Context) {
+	var errMsg string
+	c.HTML(http.StatusOK, "strategy_new_limit.html", gin.H{
+		"error":    errMsg,
+		"loggedIn": true,
 	})
 }

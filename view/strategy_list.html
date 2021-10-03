@@ -13,7 +13,7 @@
         <div class="col">
             {{ range $i, $s := .strategies}}
             <!-- position position status 1-->
-            {{ $borderColor := "border-secondary" }}
+            {{ $borderColor := "" }}
             {{ if eq $s.PositionStatus 2 }}
                 {{ $borderColor = "border-warning" }}
             {{ else if eq $s.PositionStatus 1 }}
@@ -188,13 +188,13 @@
                     </span>
                 </div>
                 <!-- padding top and padding left -->
-                <div class="card-body bg-light pt-1 ps-2">
+                <div class="card-body bg-light ps-2">
                     <!-- open position -->
                     <div class="row">
-                        <div class="col col-12 ln-h">
+                        <div class="col col-12">
                             <div class="ms-2">
-                                <span class="align-middle me-1"><small class="fw-lighter text-muted">標</small> <span class="text-danger fw-bold">$47,254 (todo)</span></span>
-                                <span class="align-middle me-1">
+                                <span class="align-middle me-2"><small class="fw-lighter text-muted">標</small> <span class="text-danger fw-bold">$47,254 (todo)</span></span>
+                                <span class="align-middle">
                                     <small class="fw-lighter text-muted">開</small>
                                     <span class="text-black text-opacity-75">
                                         {{ if eq $s.PositionStatus 1 }}
@@ -205,9 +205,22 @@
                                     </span>
                                 </span>
                             </div>
+                        </div>
+                        <!--
+                        If uncomment here, need to adjust above col lenght back to col-8
+                        <div class="col col-4 text-end ln-2">
+                            <div><span class="align-middle text-success fw-bold">+123.6%</span></div>
+                            <div><span class="align-middle text-success small">+46.96</span></div>
+                        </div>
+                        -->
+                    </div>
+                </div>
+                <div class="card-footer bg-light ps-2">
+                    <div class="row">
+                        <div class="col col-12">
                             <div class="ms-2">
                                 <!-- take profit -->
-                                <span class="align-middle me-1 small">
+                                <span class="align-middle me-2 small">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-bar-up text-secondary text-opacity-75" viewBox="0 0 16 16">
                                         <path fill-rule="evenodd" d="M3.646 11.854a.5.5 0 0 0 .708 0L8 8.207l3.646 3.647a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 0 0 0 .708zM2.4 5.2c0 .22.18.4.4.4h10.4a.4.4 0 0 0 0-.8H2.8a.4.4 0 0 0-.4.4z"/>
                                     </svg>
@@ -220,7 +233,7 @@
                                     </span>
                                 </span>
                                 <!-- stop loss -->
-                                <span class="align-middle me-1 small">
+                                <span class="align-middle small">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-bar-down text-secondary text-opacity-75" viewBox="0 0 16 16">
                                         <path fill-rule="evenodd" d="M3.646 4.146a.5.5 0 0 1 .708 0L8 7.793l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708zM1 11.5a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13a.5.5 0 0 1-.5-.5z"/>
                                     </svg>
@@ -234,13 +247,6 @@
                                 </span>
                             </div>
                         </div>
-                        <!--
-                        When uncomment here, need to adjust above col lenght back to col-8
-                        <div class="col col-4 text-end ln-2">
-                            <div><span class="align-middle text-success fw-bold">+123.6%</span></div>
-                            <div><span class="align-middle text-success small">+46.96</span></div>
-                        </div>
-                        -->
                     </div>
                 </div>
             </div>

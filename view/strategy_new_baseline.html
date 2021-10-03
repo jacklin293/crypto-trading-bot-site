@@ -1,0 +1,132 @@
+{{ template "header.html" .}}
+<main class="container">
+    {{ if ne .error "" }}
+    <div class="row rounded mb-3">
+        <div class="col">
+            <div class="alert alert-danger" role="alert">
+                {{ .error }}
+            </div>
+        </div>
+    </div>
+    {{ end }}
+    <div class="row rounded mb-3">
+        <div class="col">
+            <!-- exchange -->
+            <div class="row">
+                <label for="exchange" class="col-3 col-form-label text-end">交易所</label>
+                <div class="col-9">
+                    <input type="text" readonly class="form-control-plaintext" id="exchange" value="FTX">
+                </div>
+            </div>
+            <!-- symbol -->
+            <div class="row mt-2">
+                <label for="symbol" class="col-3 col-form-label text-end">交易對</label>
+                <div class="col-9">
+                    <input type="input" class="form-control" id="symbol">
+                </div>
+            </div>
+            <!-- side -->
+            <div class="row mt-2">
+                <label class="col-3 col-form-label text-end">方向</label>
+                <div class="col-9 pt-2">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="side" id="long" value="1">
+                        <label class="form-check-label" for="long">多</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="side" id="short" value="0">
+                        <label class="form-check-label" for="short">空</label>
+                    </div>
+                </div>
+            </div>
+            <!-- margin -->
+            <div class="row mt-2">
+                <label for="margin" class="col-3 col-form-label text-end">保證金</label>
+                <div class="col-9">
+                    <input type="input" class="form-control" id="margin">
+                    <div class="form-text">總資金: $3344, 可用餘額: $2631</div>
+                </div>
+            </div>
+            <!-- entry baseline -->
+            <div class="row mt-2">
+                <div class="col">
+                    <div class="row">
+                        <label for="margin" class="col-3 col-form-label text-end">時間1</label>
+                        <div class="col-9">
+                            <input type="input" class="form-control" id="time-1">
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <label for="margin" class="col-3 col-form-label text-end">價格1</label>
+                        <div class="col-9">
+                            <input type="input" class="form-control" id="price-1">
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <label for="margin" class="col-3 col-form-label text-end">時間2</label>
+                        <div class="col-9">
+                            <input type="input" class="form-control" id="time-2">
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <label for="margin" class="col-3 col-form-label text-end">價格2</label>
+                        <div class="col-9">
+                            <input type="input" class="form-control" id="price-2">
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <label class="col-3 col-form-label text-end">當標價</label>
+                        <div class="col-3 pt-1">
+                            <select class="form-select form-select-sm form-select-inline" aria-label=".form-select-sm">
+                                <option value=">=">>=</option>
+                                <option value="<="><=</option>
+                            </select>
+                        </div>
+                        <div class="col-3">
+                            <input type="input" class="form-control" id="price-2">
+                        </div>
+                        <label class="col-3 col-form-label">% 開倉</label>
+                    </div>
+                </div>
+            </div>
+            <!-- stop loss -->
+            <div class="row mt-2">
+                <label class="col-3 col-form-label text-end">當標價</label>
+                <div class="col-3 pt-1">
+                    <select class="form-select form-select-sm form-select-inline" aria-label=".form-select-sm">
+                        <option value=">=">>=</option>
+                        <option value="<="><=</option>
+                    </select>
+                </div>
+                <div class="col-3">
+                    <input type="input" class="form-control" id="price-2">
+                </div>
+                <label class="col-3 col-form-label">% 停損</label>
+            </div>
+            <!-- take profit -->
+            <div class="row mt-2">
+                <label class="col-3 col-form-label text-end">當標價</label>
+                <div class="col-3 pt-1">
+                    <select class="form-select form-select-sm form-select-inline" aria-label=".form-select-sm">
+                        <option value=">=">>=</option>
+                        <option value="<="><=</option>
+                    </select>
+                </div>
+                <div class="col-3">
+                    <input type="input" class="form-control" id="price-2">
+                </div>
+                <label class="col-3 col-form-label">停利</label>
+            </div>
+            <!-- submit -->
+            <div class="row mt-2">
+                <div class="col-3 mx-auto">
+                    <input type="button" id="submit-button" class="btn btn-primary" value="送出"/>
+                    <div id="submit-loading" class="spinner-border text-primary d-none ms-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{{ template "footer.html" .}}

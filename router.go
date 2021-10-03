@@ -24,4 +24,6 @@ func setRouter(r *gin.Engine, c *controller.Controller) {
 
 	// strategy
 	r.GET("/", c.StrategyList)
+	r.GET("/strategy/new_baseline", c.StrategyNewBaseline)
+	r.GET("/strategy/new_limit", c.StrategyNewLimit)
 }

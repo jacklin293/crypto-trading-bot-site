@@ -1,8 +1,8 @@
 {{ template "header.html" .}}
 <main class="container">
-    {{ if ne .errType "" }}
     <div class="row rounded mb-3">
         <div class="col">
+            {{ if ne .errType "" }}
             <div class="alert alert-danger" role="alert">
                 {{ if eq .errType "please_login" }}
                     請先登入
@@ -17,18 +17,15 @@
                     帳號或密碼錯誤, 請重新登入
                 {{ end }}
             </div>
-        </div>
-    </div>
-    {{ end }}
-    {{ if ne .success "" }}
-    <div class="row rounded mb-3">
-        <div class="col">
+            {{ end }}
+
+            {{ if ne .success "" }}
             <div class="alert alert-success" role="alert">
                 已成功登出
             </div>
+            {{ end }}
         </div>
     </div>
-    {{ end }}
     <div class="row rounded mb-3">
         <div class="col col-8">
             <form id="login-form" action="/login" method="POST">
