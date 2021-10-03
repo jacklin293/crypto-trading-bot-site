@@ -56,7 +56,7 @@
                         {{ end }}
                     </span>
 
-                    <!-- pair -->
+                    <!-- symbol -->
                     <span class="align-middle">
                         <span class="font-monospace lh-sm fw-bold align-middle px-1 text-black text-opacity-75">{{$s.SymbolPart1}}<small class="text-muted">/{{$s.SymbolPart2}}</small></span>
                     </span>
@@ -214,15 +214,18 @@
                     </span>
                 </div>
                 <!-- padding top and padding left -->
-                <div class="card-body bg-light ps-2">
+                <div class="card-body bg-light ps-2 py-1">
                     <!-- open position -->
                     <div class="row">
                         <div class="col col-12">
                             <div class="ms-2">
-                                <span class="align-middle me-2"><small class="fw-lighter text-muted">標</small> <span class="text-danger fw-bold">$47,254 (todo)</span></span>
                                 <span class="align-middle">
-                                    <small class="fw-lighter text-muted">開</small>
-                                    <span class="text-black text-opacity-75">
+                                    <small class="fw-lighter text-muted align-middle">標</small>
+                                    <span class="text-black text-opacity-75 {{printf "%s%s" "ws-" $s.Symbol}} d-inline-block align-middle text-truncate" style="width: 70px;">-</span>
+                                </span>
+                                <span class="align-middle">
+                                    <small class="fw-lighter text-muted align-middle">開</small>
+                                    <span class="text-black text-opacity-75 d-inline-block align-middle text-truncate" style="width: 90px;">
                                         {{ if eq $s.PositionStatus 1 }}
                                             ${{$s.BoughtPrice}}
                                         {{ else }}
@@ -241,7 +244,7 @@
                         -->
                     </div>
                 </div>
-                <div class="card-footer bg-light ps-2">
+                <div class="card-footer bg-light ps-2 py-1">
                     <div class="row">
                         <div class="col col-12">
                             <div class="ms-2">
@@ -281,3 +284,49 @@
     </div>
 </main>
 {{ template "footer.html" .}}
+<script>
+var symbols = {{.symbols}};
+const ws_init = function () {
+    ws = new WebSocket("wss://ftx.com/ws/");
+
+    ws.onopen = function () {
+        for (s of symbols) {
+            ws.send(`{"op": "subscribe", "channel": "trades", "market": "${s}"}`);
+        }
+    };
+
+    ws.onclose = function () {
+        setTimeout(ws_init, 5000);
+    };
+
+    ws.onerror = function (error) {
+        console.log('WS error: ' + error);
+    };
+
+    ws.onmessage = function (e) {
+        let data = JSON.parse(e.data);
+        if (data.channel == "trades" && data.type == "update") {
+            handleTrades(data);
+        }
+    };
+
+    const ping = function () {
+        ws.send('{"op":"ping"}');
+    };
+    setInterval(ping, 10000);
+}
+ws_init();
+
+// Stop updating if the price doesn't change
+// Initialisation
+var lastSymbolPrice = [];
+for (let i = 0; i < symbols.length; i++) {
+    lastSymbolPrice[symbols[i]] = 0;
+}
+const handleTrades = function (data) {
+    $(".ws-" + data.market).text('$' + data.data[0].price);
+    if (lastSymbolPrice[data.market] !== data.data[0].price) {
+        lastSymbolPrice[data.market] = data.data[0].price;
+    }
+}
+</script>

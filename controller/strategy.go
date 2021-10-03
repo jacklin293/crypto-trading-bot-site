@@ -22,6 +22,7 @@ import (
 // for template
 type StrategyTmpl struct {
 	Exchange       string
+	Symbol         string
 	SymbolPart1    string
 	SymbolPart2    string
 	Side           int64
@@ -43,6 +44,18 @@ func (ctl *Controller) StrategyList(c *gin.Context) {
 
 	userCookie := ctl.getUserData(c)
 
+	// Prepare symbols array for js
+	symbolRows, _, err := ctl.db.GetEnabledContractSymbols("FTX")
+	if err != nil {
+		c.HTML(http.StatusOK, "strategy_new_baseline.html", gin.H{"error": "Symbols not found"})
+		return
+	}
+	var symbols []string
+	for _, s := range symbolRows {
+		symbols = append(symbols, s.Name)
+	}
+
+	// Get exchange account info
 	accountInfo, err := ctl.getExchangeAccountInfo(c)
 	if err != nil {
 		errMsg = "FTX API server is down"
@@ -101,6 +114,7 @@ func (ctl *Controller) StrategyList(c *gin.Context) {
 		}
 
 		st.Exchange = cs.Exchange
+		st.Symbol = cs.Symbol
 		st.SymbolPart1 = symbol[0]
 		st.SymbolPart2 = symbol[1]
 		st.Side = cs.Side
@@ -112,6 +126,7 @@ func (ctl *Controller) StrategyList(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "strategy_list.html", gin.H{
+		"symbols":    symbols,
 		"strategies": strategyTmpls,
 		"error":      errMsg,
 		"loggedIn":   true,
