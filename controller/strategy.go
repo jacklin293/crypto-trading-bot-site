@@ -16,11 +16,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+	"github.com/spf13/viper"
 	"gorm.io/datatypes"
 )
 
 // for template
 type StrategyTmpl struct {
+	Uuid           string
 	Exchange       string
 	Symbol         string
 	SymbolPart1    string
@@ -36,7 +38,7 @@ type StrategyTmpl struct {
 	StopLoss       string
 }
 
-func (ctl *Controller) StrategyList(c *gin.Context) {
+func (ctl *Controller) ListStrategies(c *gin.Context) {
 	if !ctl.tokenAuthCheck(c) {
 		return
 	}
@@ -56,8 +58,7 @@ func (ctl *Controller) StrategyList(c *gin.Context) {
 	css, _, err := ctl.db.GetContractStrategiesByUser(userCookie.Uuid)
 	if err != nil {
 		log.Println("strategy controller err: ", err)
-		c.HTML(http.StatusOK, "index.html", gin.H{"error": "Internal Error"})
-		return
+		errMsg = "Internal error"
 	}
 
 	symbolMap := make(map[string]bool)
@@ -82,8 +83,8 @@ func (ctl *Controller) StrategyList(c *gin.Context) {
 			contract, err := contract.NewContract(order.Side(cs.Side), cs.Params)
 			if err != nil {
 				log.Println("strategy controller err: ", err)
-				c.HTML(http.StatusOK, "index.html", gin.H{"error": "Internal Error"})
-				return
+				errMsg = "Internal error"
+				continue
 			}
 			// This doesn't matter for position
 			st.EntryPrice = contract.EntryOrder.GetTrigger().GetPrice(time.Now()).Truncate(5).String()
@@ -105,6 +106,7 @@ func (ctl *Controller) StrategyList(c *gin.Context) {
 			st.Leverage = cs.Margin.Div(accountInfo["collateral"].(decimal.Decimal)).StringFixed(1)
 		}
 
+		st.Uuid = cs.Uuid
 		st.Exchange = cs.Exchange
 		st.Symbol = cs.Symbol
 		st.SymbolPart1 = symbol[0]
@@ -125,7 +127,7 @@ func (ctl *Controller) StrategyList(c *gin.Context) {
 		symbols = append(symbols, key)
 	}
 
-	c.HTML(http.StatusOK, "strategy_list.html", gin.H{
+	c.HTML(http.StatusOK, "list_strategies.html", gin.H{
 		"symbols":    symbols,
 		"strategies": strategyTmpls,
 		"error":      errMsg,
@@ -134,7 +136,7 @@ func (ctl *Controller) StrategyList(c *gin.Context) {
 	})
 }
 
-func (ctl *Controller) StrategyNewBaseline(c *gin.Context) {
+func (ctl *Controller) NewBaselineStrategy(c *gin.Context) {
 	if !ctl.tokenAuthCheck(c) {
 		return
 	}
@@ -144,7 +146,7 @@ func (ctl *Controller) StrategyNewBaseline(c *gin.Context) {
 	// Get symbols
 	symbols, _, err := ctl.db.GetEnabledContractSymbols("FTX")
 	if err != nil {
-		c.HTML(http.StatusOK, "strategy_new_baseline.html", gin.H{"error": "Symbols not found"})
+		c.HTML(http.StatusOK, "new_baseline_strategy.html", gin.H{"error": "Symbols not found"})
 		return
 	}
 
@@ -159,7 +161,7 @@ func (ctl *Controller) StrategyNewBaseline(c *gin.Context) {
 		availableMargin = accountInfo["free_collateral"].(decimal.Decimal).Mul(leverage)
 	}
 
-	c.HTML(http.StatusOK, "strategy_new_baseline.html", gin.H{
+	c.HTML(http.StatusOK, "new_baseline_strategy.html", gin.H{
 		"error":           errMsg,
 		"loggedIn":        true,
 		"symbols":         symbols,
@@ -170,7 +172,7 @@ func (ctl *Controller) StrategyNewBaseline(c *gin.Context) {
 	})
 }
 
-func (ctl *Controller) StrategyCreate(c *gin.Context) {
+func (ctl *Controller) CreateStrategy(c *gin.Context) {
 	if !ctl.tokenAuthCheck(c) {
 		return
 	}
@@ -288,40 +290,93 @@ func (ctl *Controller) StrategyCreate(c *gin.Context) {
 	return
 }
 
-func (ctl *Controller) StrategyNewLimit(c *gin.Context) {
+func (ctl *Controller) NewLimitStrategy(c *gin.Context) {
 	if !ctl.tokenAuthCheck(c) {
 		return
 	}
 
 	var errMsg string
-	c.HTML(http.StatusOK, "strategy_new_limit.html", gin.H{
+	c.HTML(http.StatusOK, "new_limit_strategy.html", gin.H{
 		"error":    errMsg,
 		"loggedIn": true,
 	})
 }
 
-func (ctl *Controller) getExchangeAccountInfo(c *gin.Context) (accountInfo map[string]interface{}, err error) {
-	userCookie := ctl.getUserData(c)
-	user, err := ctl.db.GetUserByUuid(userCookie.Uuid)
-	if err != nil {
-		log.Println("strategy controller err: ", err)
-		c.HTML(http.StatusOK, "index.html", gin.H{"error": "Internal Error"})
+func (ctl *Controller) ShowStrategy(c *gin.Context) {
+	if !ctl.tokenAuthCheck(c) {
 		return
 	}
 
-	// New exchange
-	exchange, err := exchange.NewExchange("ftx", user.ExchangeApiInfo)
+	// TODO check permission
+	c.JSON(http.StatusOK, gin.H{"ShowStrategy": ""})
+}
+
+func (ctl *Controller) DeleteStrategy(c *gin.Context) {
+	if !ctl.tokenAuthCheck(c) {
+		return
+	}
+	userCookie := ctl.getUserData(c)
+	uuid := c.Param("uuid")
+
+	// Check permission
+	strategy, err := ctl.db.GetContractStrategyByUuidByUser(uuid, userCookie.Uuid)
 	if err != nil {
-		log.Println("strategy controller err: ", err)
-		c.HTML(http.StatusOK, "index.html", gin.H{"error": "Internal Error"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	// Make sure the status has been disabed and position status is closed
+	if strategy.Enabled != 0 || contract.Status(strategy.PositionStatus) != contract.CLOSED {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "策略未暫停或訂單狀態未結束"})
+		return
+	}
+
+	// Make sure it's not tracked by engine
+	if err = ctl.notBeingTrackedByEngine(c, uuid); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Delete data
+	result := ctl.db.GormDB.Delete(&strategy)
+	if result.Error != nil {
+		log.Println("[ERROR] failed to delete strategy, err:", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
+	}
+
+	c.JSON(http.StatusOK, gin.H{})
+}
+
+func (ctl *Controller) getExchangeAccountInfo(c *gin.Context) (accountInfo map[string]interface{}, err error) {
+	ex, err := ctl.newExchange(c)
+	if err != nil {
 		return
 	}
 
 	// Get account info from exchange
-	// NOTE Don't block if ftx api server is down
-	accountInfo, err = exchange.GetAccountInfo()
+	accountInfo, err = ex.GetAccountInfo()
 	if err != nil {
-		log.Println("strategy controller err: ", err)
+		log.Printf("failed to get account info from %s, err: %s", viper.GetString("DEFAULT_EXCHANGE"), err.Error())
+	}
+	return
+}
+
+func (ctl *Controller) newExchange(c *gin.Context) (ex exchange.Exchanger, err error) {
+	// Get user data
+	userCookie := ctl.getUserData(c)
+	user, err := ctl.db.GetUserByUuid(userCookie.Uuid)
+	if err != nil {
+		log.Printf("[ERROR] failed to get user by '%s', err: %v", userCookie.Uuid, err)
+		err = errors.New("內部錯誤, 請重試")
+		return
+	}
+
+	// New exchange
+	ex, err = exchange.NewExchange(viper.GetString("DEFAULT_EXCHANGE"), user.ExchangeApiInfo)
+	if err != nil {
+		log.Println("[ERROR] failed to new exchange")
+		err = errors.New("API Key 可能已失效, 請確認或重試一次")
+		return
 	}
 	return
 }

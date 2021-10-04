@@ -26,8 +26,17 @@ func setRouter(r *gin.Engine, c *controller.Controller) {
 	r.GET("/logout", c.Logout)
 
 	// strategy
-	r.GET("/", c.StrategyList)
-	r.GET("/strategy/new_baseline", c.StrategyNewBaseline)
-	r.GET("/strategy/new_limit", c.StrategyNewLimit)
-	r.POST("/strategy", c.StrategyCreate)
+	r.GET("/", c.ListStrategies)
+	r.GET("/strategy/new_baseline", c.NewBaselineStrategy)
+	r.GET("/strategy/new_limit", c.NewLimitStrategy) // TODO
+	r.POST("/strategy", c.CreateStrategy)
+	r.GET("/strategy/:uuid", c.ShowStrategy) // TODO
+	r.DELETE("/strategy/:uuid", c.DeleteStrategy)
+
+	// action
+	r.GET("/action/enable_strategy/:uuid", c.EnableStrategy)
+	r.GET("/action/disable_strategy/:uuid", c.DisableStrategy)
+	r.GET("/action/reset_strategy/:uuid", c.ResetStrategy)
+	r.GET("/action/share_strategy/:uuid", c.ShareStrategy) // TODO
+	r.GET("/action/close_position/:uuid", c.ClosePosition)
 }
