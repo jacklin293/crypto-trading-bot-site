@@ -77,7 +77,7 @@ func (ctl *Controller) LoginAPI(c *gin.Context) {
 	}
 
 	// Get user by username namd password
-	user, err := ctl.db.GetUserByUsernameAndPassword(u.Username, u.Password)
+	user, err := ctl.db.GetUserByUsernameByPassword(u.Username, u.Password)
 	if err != nil {
 		log.Println("LoginAPI err: ", err)
 		ctl.redirectToLoginPage(c, "/login?err=login_failed")
