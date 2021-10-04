@@ -44,17 +44,6 @@ func (ctl *Controller) StrategyList(c *gin.Context) {
 
 	userCookie := ctl.getUserData(c)
 
-	// Prepare symbols array for js
-	symbolRows, _, err := ctl.db.GetEnabledContractSymbols("FTX")
-	if err != nil {
-		c.HTML(http.StatusOK, "strategy_new_baseline.html", gin.H{"error": "Symbols not found"})
-		return
-	}
-	var symbols []string
-	for _, s := range symbolRows {
-		symbols = append(symbols, s.Name)
-	}
-
 	// Get exchange account info
 	accountInfo, err := ctl.getExchangeAccountInfo(c)
 	if err != nil {
@@ -69,6 +58,7 @@ func (ctl *Controller) StrategyList(c *gin.Context) {
 		return
 	}
 
+	symbolMap := make(map[string]bool)
 	var strategyTmpls []StrategyTmpl
 	for _, cs := range css {
 		var st StrategyTmpl
@@ -121,8 +111,16 @@ func (ctl *Controller) StrategyList(c *gin.Context) {
 		st.Margin = cs.Margin.String()
 		st.Enabled = cs.Enabled
 		st.PositionStatus = cs.PositionStatus
-
 		strategyTmpls = append(strategyTmpls, st)
+
+		// Prepare symbols array for js
+		symbolMap[cs.Symbol] = true
+	}
+
+	// Prepare symbols array for js
+	var symbols []string
+	for key, _ := range symbolMap {
+		symbols = append(symbols, key)
 	}
 
 	c.HTML(http.StatusOK, "strategy_list.html", gin.H{

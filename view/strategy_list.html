@@ -284,10 +284,19 @@
     </div>
 </main>
 {{ template "footer.html" .}}
+
 <script>
+{{ $symLen := len .symbols }}
+{{ if eq $symLen 0 }}
+var symbols = [];
+{{ else }}
 var symbols = {{.symbols}};
+{{ end }}
+
 const ws_init = function () {
-    ws = new WebSocket("wss://ftx.com/ws/");
+    url = "wss://ftx.com/ws/";
+    ws = new WebSocket(url);
+    console.log("connecting to ", url)
 
     ws.onopen = function () {
         for (s of symbols) {
@@ -315,7 +324,11 @@ const ws_init = function () {
     };
     setInterval(ping, 10000);
 }
-ws_init();
+
+if (symbols.length > 0) {
+    console.log("symbols:", symbols);
+    ws_init();
+}
 
 // Stop updating if the price doesn't change
 // Initialisation
