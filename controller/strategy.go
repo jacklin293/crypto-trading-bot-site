@@ -37,7 +37,9 @@ type StrategyTmpl struct {
 }
 
 func (ctl *Controller) StrategyList(c *gin.Context) {
-	ctl.tokenAuthCheck(c)
+	if !ctl.tokenAuthCheck(c) {
+		return
+	}
 
 	var errMsg string
 	success := c.Query("success")
@@ -133,7 +135,9 @@ func (ctl *Controller) StrategyList(c *gin.Context) {
 }
 
 func (ctl *Controller) StrategyNewBaseline(c *gin.Context) {
-	ctl.tokenAuthCheck(c)
+	if !ctl.tokenAuthCheck(c) {
+		return
+	}
 
 	var errMsg string
 
@@ -167,7 +171,9 @@ func (ctl *Controller) StrategyNewBaseline(c *gin.Context) {
 }
 
 func (ctl *Controller) StrategyCreate(c *gin.Context) {
-	ctl.tokenAuthCheck(c)
+	if !ctl.tokenAuthCheck(c) {
+		return
+	}
 
 	// Validate symbols
 	symbol := c.PostForm("symbol")
@@ -283,7 +289,9 @@ func (ctl *Controller) StrategyCreate(c *gin.Context) {
 }
 
 func (ctl *Controller) StrategyNewLimit(c *gin.Context) {
-	ctl.tokenAuthCheck(c)
+	if !ctl.tokenAuthCheck(c) {
+		return
+	}
 
 	var errMsg string
 	c.HTML(http.StatusOK, "strategy_new_limit.html", gin.H{

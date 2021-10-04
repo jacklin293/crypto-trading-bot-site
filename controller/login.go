@@ -1,11 +1,15 @@
 package controller
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"reflect"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -90,17 +94,30 @@ func (ctl *Controller) LoginAPI(c *gin.Context) {
 		return
 	}
 
-	// Set session
+	// Get session
 	session, err := ctl.store.Get(c.Request, "user-session")
+	if err != nil {
+		log.Println("LoginAPI err: ", err)
+		ctl.clearSession(c)
+		ctl.redirectToLoginPage(c, "/login?err=login_failed")
+		return
+	}
+
+	// Generate signature
+	expiryTs := time.Now().Add(time.Second * 86400 * LOGIN_EXPIRY_LENGTH_DAY).Unix()
+	hash, err := ctl.getSignatureHash(user.Uuid, user.Username, expiryTs)
 	if err != nil {
 		log.Println("LoginAPI err: ", err)
 		ctl.redirectToLoginPage(c, "/login?err=login_failed")
 		return
 	}
+	signature := base64.StdEncoding.EncodeToString(hash)
+
 	session.Values["uuid"] = user.Uuid
 	session.Values["telegram_chat_id"] = user.TelegramChatId
 	session.Values["username"] = user.Username
-	session.Values["expiry_ts"] = time.Now().Add(time.Second * 86400 * LOGIN_EXPIRY_LENGTH_DAY).Unix()
+	session.Values["expiry_ts"] = expiryTs
+	session.Values["signature"] = signature
 	session.Options = &sessions.Options{
 		MaxAge: 86400 * LOGIN_EXPIRY_LENGTH_DAY,
 	}
@@ -189,4 +206,86 @@ func (ctl *Controller) checkRecaptcha(response string) (bool, error) {
 	}
 	success := googleResponse["success"].(bool)
 	return success, nil
+}
+
+func (ctl *Controller) tokenAuthCheck(c *gin.Context) bool {
+	session, err := ctl.store.Get(c.Request, "user-session")
+	if err != nil {
+		log.Println("tokenAuthCheck err:", err)
+		ctl.redirectToLoginPage(c, "/login?err=internal_error")
+		return false
+	}
+
+	expiryTs, ok := session.Values["expiry_ts"].(int64)
+	if ok {
+		if time.Now().Unix() > expiryTs {
+			ctl.redirectToLoginPage(c, "/login?err=session_expired")
+			return false
+		}
+	} else {
+		ctl.redirectToLoginPage(c, "/login?err=please_login")
+		return false
+	}
+
+	if _, ok := session.Values["telegram_chat_id"].(int64); !ok {
+		ctl.redirectToLoginPage(c, "/login?err=please_login")
+		return false
+	}
+	uuid, ok := session.Values["uuid"].(string)
+	if !ok {
+		ctl.redirectToLoginPage(c, "/login?err=please_login")
+		return false
+	}
+	username, ok := session.Values["username"].(string)
+	if !ok {
+		ctl.redirectToLoginPage(c, "/login?err=please_login")
+		return false
+	}
+
+	// signature signed by server
+	signature, ok := session.Values["signature"].(string)
+	if !ok {
+		ctl.redirectToLoginPage(c, "/login?err=please_login")
+		return false
+	}
+	signatureHash, err := base64.StdEncoding.DecodeString(signature)
+	if err != nil {
+		ctl.redirectToLoginPage(c, "/login?err=internal_error")
+		return false
+	}
+
+	// hash gnenrated by cookie data
+	hash, err := ctl.getSignatureHash(uuid, username, expiryTs)
+	if err != nil {
+		ctl.redirectToLoginPage(c, "/login?err=internal_error")
+		return false
+	}
+
+	if !reflect.DeepEqual(signatureHash, hash) {
+		ctl.redirectToLoginPage(c, "/login?err=internal_error")
+		return false
+	}
+
+	return true
+}
+
+// signature = []byte({uuid}-{username}-{expiryTs}) + []byte(salt)
+func (ctl *Controller) getSignatureHash(uuid string, username string, expiryTs int64) ([]byte, error) {
+	// Get signature key
+	salt, err := base64.StdEncoding.DecodeString(viper.GetString("SESSION_SIGNATURE_SALT"))
+	if err != nil {
+		return []byte{}, err
+	}
+	s := fmt.Sprintf("%s-%s-%d", uuid, username, expiryTs)
+	sigKey := []byte(s)
+	sigKey = append(sigKey, salt...)
+
+	// Hash signature key
+	h := sha256.New()
+	_, err = h.Write([]byte(sigKey))
+	if err != nil {
+		return []byte{}, err
+	}
+	return h.Sum(nil), nil
+
 }

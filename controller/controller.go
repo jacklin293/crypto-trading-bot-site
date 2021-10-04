@@ -3,9 +3,9 @@ package controller
 import (
 	"crypto-trading-bot-engine/db"
 	"crypto-trading-bot-engine/message"
+	"encoding/base64"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
@@ -40,8 +40,19 @@ func InitController() *Controller {
 		log.Fatal(err)
 	}
 
+	// base64 decode key
+	authKey, err := base64.StdEncoding.DecodeString(viper.GetString("SESSION_AUTHENTICATION_KEY"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	encryptKey, err := base64.StdEncoding.DecodeString(viper.GetString("SESSION_ENCRYPTION_KEY"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Session store
-	store := sessions.NewCookieStore([]byte(viper.GetString("SESSION_SECRET")))
+	store := sessions.NewCookieStore(authKey, encryptKey)
 
 	return &Controller{
 		db:     db,
@@ -58,38 +69,7 @@ func failJSONWithVagueError(c *gin.Context, caller string, err error) {
 	})
 }
 
-func (ctl *Controller) tokenAuthCheck(c *gin.Context) {
-	session, err := ctl.store.Get(c.Request, "user-session")
-	if err != nil {
-		log.Println("TokenAuthMiddleware err:", err)
-		ctl.redirectToLoginPage(c, "/login?err=internal_error")
-		return
-	}
-
-	if expiryTs, ok := session.Values["expiry_ts"].(int64); ok {
-		if time.Now().Unix() > expiryTs {
-			ctl.redirectToLoginPage(c, "/login?err=session_expired")
-			return
-		}
-	} else {
-		ctl.redirectToLoginPage(c, "/login?err=please_login")
-		return
-	}
-
-	if _, ok := session.Values["uuid"].(string); !ok {
-		ctl.redirectToLoginPage(c, "/login?err=please_login")
-		return
-	}
-	if _, ok := session.Values["telegram_chat_id"].(int64); !ok {
-		ctl.redirectToLoginPage(c, "/login?err=please_login")
-		return
-	}
-	if _, ok := session.Values["username"].(string); !ok {
-		ctl.redirectToLoginPage(c, "/login?err=please_login")
-		return
-	}
-}
-
+// must be called after 'tokenAuthCheck'
 func (ctl *Controller) getUserData(c *gin.Context) *UserData {
 	session, _ := ctl.store.Get(c.Request, "user-session")
 	return &UserData{
@@ -102,15 +82,16 @@ func (ctl *Controller) getUserData(c *gin.Context) *UserData {
 func (ctl *Controller) clearSession(c *gin.Context) {
 	session, err := ctl.store.Get(c.Request, "user-session")
 	if err != nil {
-		log.Println("TokenAuthMiddleware err:", err)
+		log.Println("clearSession err:", err)
 	}
 	session.Options.MaxAge = -1
 	err = session.Save(c.Request, c.Writer)
 	if err != nil {
-		log.Println("TokenAuthMiddleware err:", err)
+		log.Println("clearSession err:", err)
 	}
 }
 
 func (ctl *Controller) redirectToLoginPage(c *gin.Context, urlPath string) {
 	c.Redirect(http.StatusFound, urlPath)
+	c.Abort()
 }
