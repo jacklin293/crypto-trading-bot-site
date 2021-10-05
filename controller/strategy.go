@@ -91,7 +91,7 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 			st.EntryPrice = contract.EntryOrder.GetTrigger().GetPrice(time.Now()).Truncate(5).String()
 
 			if contract.StopLossOrder != nil {
-				// If entry_type is baseline, stop-loss trigger will be filled after entry order triggered
+				// If entry_type is trendline, stop-loss trigger will be filled after entry order triggered
 				stopLossTrigger := contract.StopLossOrder.GetTrigger()
 				if stopLossTrigger != nil {
 					st.StopLoss = stopLossTrigger.GetPrice(time.Now()).String()
@@ -137,7 +137,7 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 	})
 }
 
-func (ctl *Controller) NewBaselineStrategy(c *gin.Context) {
+func (ctl *Controller) NewTrendlineStrategy(c *gin.Context) {
 	if !ctl.tokenAuthCheck(c) {
 		return
 	}
@@ -147,7 +147,7 @@ func (ctl *Controller) NewBaselineStrategy(c *gin.Context) {
 	// Get symbols
 	symbols, _, err := ctl.db.GetEnabledContractSymbols("FTX")
 	if err != nil {
-		c.HTML(http.StatusOK, "new_baseline_strategy.html", gin.H{"error": "Symbols not found"})
+		c.HTML(http.StatusOK, "new_trendline_strategy.html", gin.H{"error": "Symbols not found"})
 		return
 	}
 
@@ -162,7 +162,7 @@ func (ctl *Controller) NewBaselineStrategy(c *gin.Context) {
 		availableMargin = accountInfo["free_collateral"].(decimal.Decimal).Mul(leverage)
 	}
 
-	c.HTML(http.StatusOK, "new_baseline_strategy.html", gin.H{
+	c.HTML(http.StatusOK, "new_trendline_strategy.html", gin.H{
 		"error":           errMsg,
 		"loggedIn":        true,
 		"symbols":         symbols,
@@ -216,7 +216,7 @@ func (ctl *Controller) CreateStrategy(c *gin.Context) {
 	takeProfitEnabled := c.PostForm("take_profit[enabled]")
 
 	// Convert params
-	params, err := ctl.convertBaselineStrategyParams(c)
+	params, err := ctl.convertTrendlineStrategyParams(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -226,7 +226,7 @@ func (ctl *Controller) CreateStrategy(c *gin.Context) {
 	contractParams := map[string]interface{}{
 		"entry_type": c.PostForm("entry_type"),
 		"entry_order": map[string]interface{}{
-			"baseline_trigger": map[string]interface{}{
+			"trendline_trigger": map[string]interface{}{
 				"trigger_type": c.PostForm("entry[trigger_type]"),
 				"operator":     c.PostForm("entry[operator]"),
 				"time_1":       params["time_1"].(time.Time).Format(time.RFC3339),
@@ -234,14 +234,14 @@ func (ctl *Controller) CreateStrategy(c *gin.Context) {
 				"time_2":       params["time_2"].(time.Time).Format(time.RFC3339),
 				"price_2":      c.PostForm("entry[price_2]"),
 			},
-			"baseline_offset_percent": params["baseline_offset_percent"].(float64),
-			"flip_operator_enabled":   params["flip_operator_enabled"].(bool),
+			"trendline_offset_percent": params["trendline_offset_percent"].(float64),
+			"flip_operator_enabled":    params["flip_operator_enabled"].(bool),
 		},
 	}
 	if stopLossEnabled == "1" {
 		contractParams["stop_loss_order"] = map[string]interface{}{
-			"loss_tolerance_percent":        params["loss_tolerance_percent"].(float64),
-			"baseline_readjustment_enabled": params["baseline_readjustment_enabled"].(bool),
+			"loss_tolerance_percent":         params["loss_tolerance_percent"].(float64),
+			"trendline_readjustment_enabled": params["trendline_readjustment_enabled"].(bool),
 		}
 	}
 	if takeProfitEnabled == "1" {
@@ -420,7 +420,7 @@ func (ctl *Controller) newExchange(c *gin.Context) (ex exchange.Exchanger, err e
 	return
 }
 
-func (ctl *Controller) convertBaselineStrategyParams(c *gin.Context) (map[string]interface{}, error) {
+func (ctl *Controller) convertTrendlineStrategyParams(c *gin.Context) (map[string]interface{}, error) {
 	data := make(map[string]interface{})
 
 	// time 1
@@ -447,17 +447,17 @@ func (ctl *Controller) convertBaselineStrategyParams(c *gin.Context) (map[string
 	}
 	data["time_2"] = t
 
-	// baseline_offset_percent
-	percent := c.PostForm("entry[baseline_offset_percent]")
-	data["baseline_offset_percent"] = float64(0.0)
+	// trendline_offset_percent
+	percent := c.PostForm("entry[trendline_offset_percent]")
+	data["trendline_offset_percent"] = float64(0.0)
 	if percent == "" {
-		return data, errors.New("baseline_offset_percent is invalid")
+		return data, errors.New("trendline_offset_percent is invalid")
 	}
 	p, err := strconv.ParseFloat(percent, 64)
 	if err != nil {
-		return data, errors.New("baseline_offset_percent is invalid")
+		return data, errors.New("trendline_offset_percent is invalid")
 	}
-	data["baseline_offset_percent"] = float64(int64(p/100*10000)) / 10000 // convert to percent first, then fix float64
+	data["trendline_offset_percent"] = float64(int64(p/100*10000)) / 10000 // convert to percent first, then fix float64
 
 	// flip_operator_enabled
 	enabled := c.PostForm("entry[flip_operator_enabled]")
@@ -492,21 +492,21 @@ func (ctl *Controller) convertBaselineStrategyParams(c *gin.Context) (map[string
 		data["loss_tolerance_percent"] = float64(int64(p/100*10000)) / 10000 // convert to percent first, then fix float64
 	}
 
-	// baseline_readjustment_enabled
+	// trendline_readjustment_enabled
 	if stopLossEnabled == "1" {
-		enabled = c.PostForm("stop_loss[baseline_readjustment_enabled]")
-		data["baseline_readjustment_enabled"] = false
+		enabled = c.PostForm("stop_loss[trendline_readjustment_enabled]")
+		data["trendline_readjustment_enabled"] = false
 		if enabled == "" {
-			return data, errors.New("baseline_readjustment_enabled is invalid")
+			return data, errors.New("trendline_readjustment_enabled is invalid")
 		}
 		if enabled != "1" && enabled != "0" {
-			return data, errors.New("baseline_readjustment_enabled is invalid")
+			return data, errors.New("trendline_readjustment_enabled is invalid")
 		}
 		if enabled == "1" {
-			data["baseline_readjustment_enabled"] = true
+			data["trendline_readjustment_enabled"] = true
 		}
 		if enabled == "0" {
-			data["baseline_readjustment_enabled"] = false
+			data["trendline_readjustment_enabled"] = false
 		}
 	}
 

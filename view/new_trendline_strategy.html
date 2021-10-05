@@ -13,7 +13,7 @@
     <div class="row rounded mb-3">
         <div class="col">
             <form action="/strategy" method="POST" id="strategy-form">
-                <input type="hidden" name="entry_type" value="baseline"/>
+                <input type="hidden" name="entry_type" value="trendline"/>
                 <!-- exchange -->
                 <div class="row">
                     <label for="exchange" class="col-3 col-form-label text-end">交易所</label>
@@ -55,7 +55,7 @@
                         <div class="form-text">本金: {{.collateral}} ({{.leverage}}x)  總資金: {{.totalMargin}}</div>
                     </div>
                 </div>
-                <!-- entry baseline -->
+                <!-- entry trendline -->
                 <div class="row mt-2">
                     <div class="col">
                         <input type="hidden" name="entry[trigger_type]" value="line"/>
@@ -92,7 +92,7 @@
                                 </select>
                             </div>
                             <div class="col-3">
-                                <input type="input" class="form-control bg-light" name="entry[baseline_offset_percent]" placeholder="e.g. 1">
+                                <input type="input" class="form-control bg-light" name="entry[trendline_offset_percent]" placeholder="e.g. 1">
                             </div>
                             <label class="col-3 col-form-label">% 開倉</label>
                         </div>
@@ -140,11 +140,11 @@
                             <div class="col-9">
                                 <label class="col-form-label text-end">自動調整趨勢線</label>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input bg-light" type="radio" name="stop_loss[baseline_readjustment_enabled]" value="1" id="readjustment-enabled" checked>
+                                    <input class="form-check-input bg-light" type="radio" name="stop_loss[trendline_readjustment_enabled]" value="1" id="readjustment-enabled" checked>
                                     <label class="form-check-label" for="readjustment-enabled">開</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input bg-light" type="radio" name="stop_loss[baseline_readjustment_enabled]" id="readjustment-disabled" value="0">
+                                    <input class="form-check-input bg-light" type="radio" name="stop_loss[trendline_readjustment_enabled]" id="readjustment-disabled" value="0">
                                     <label class="form-check-label" for="readjustment-disabled">關</label>
                                 </div>
                             </div>
