@@ -37,6 +37,7 @@ type StrategyTmpl struct {
 	BoughtPrice    string
 	TakeProfit     string
 	StopLoss       string
+	Comment        string
 }
 
 func (ctl *Controller) ListStrategies(c *gin.Context) {
@@ -116,6 +117,7 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 		st.Margin = cs.Margin.String()
 		st.Enabled = cs.Enabled
 		st.PositionStatus = cs.PositionStatus
+		st.Comment = cs.Comment
 		strategyTmpls = append(strategyTmpls, st)
 
 		// Prepare symbols array for js
@@ -274,9 +276,16 @@ func (ctl *Controller) CreateStrategy(c *gin.Context) {
 		PositionStatus:        0,
 		Exchange:              "FTX",
 		ExchangeOrdersDetails: datatypes.JSONMap{},
+		Comment:               c.PostForm("comment"),
 	}
 	insertId, count, err := ctl.db.CreateContractStrategy(strategy)
 	if err != nil {
+		// Capture `Error 1406: Data too long for column 'comment' at row 1`
+		if strings.Contains(err.Error(), "comment") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "註解字數過多"})
+			return
+		}
+
 		log.Println("[ERROR] StrategyCreate db err: ", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
 		return

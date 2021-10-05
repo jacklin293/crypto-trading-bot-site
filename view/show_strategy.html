@@ -25,14 +25,6 @@
                 <div class="col-9">${{.strategy.Margin}}</div>
             </div>
             <div class="row">
-                <div class="col-3 text-end">策略參數</div>
-                <div class="col-9">
-                    <div class="mb-3">
-                        <textarea class="form-control" rows="3" readonly>{{.params}}</textarea>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
                 <div class="col-3 text-end">開啟狀態</div>
                 <div class="col-9">
                     {{if eq .strategy.Enabled 1}}
@@ -46,20 +38,12 @@
                 <div class="col-3 text-end">訂單狀態</div>
                 <div class="col-9">
                     {{if eq .strategy.PositionStatus 2}}
-                        未知狀態,請重置
+                        狀態未知,請重置
                     {{else if eq .strategy.PositionStatus 1 }}
-                        開單中
+                        已開倉
                     {{else if eq .strategy.PositionStatus 0 }}
                         未觸發
                     {{end}}
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-3 text-end">訂單</div>
-                <div class="col-9">
-                    <div class="mb-3">
-                        <textarea class="form-control" rows="3" readonly>{{.ordersDetails}}</textarea>
-                    </div>
                 </div>
             </div>
             <div class="row">
@@ -73,6 +57,30 @@
             <div class="row">
                 <div class="col-3 text-end">最後更新</div>
                 <div class="col-9">{{.updatedAt}}</div>
+            </div>
+            <div class="row">
+                <div class="col-3 text-end">註解</div>
+                <div class="col-9">
+                    <div class="mb-3">
+                        <textarea class="form-control" rows="2" readonly>{{.strategy.Comment}}</textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-3 text-end">策略參數</div>
+                <div class="col-9">
+                    <div class="mb-3">
+                        <textarea class="form-control" rows="3" readonly>{{.params}}</textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-3 text-end">訂單細節</div>
+                <div class="col-9">
+                    <div class="mb-3">
+                        <textarea class="form-control" rows="3" readonly>{{.ordersDetails}}</textarea>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
