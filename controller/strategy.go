@@ -333,7 +333,7 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 		return
 	}
 
-	details := "無"
+	details := "(無)"
 	if len(strategy.ExchangeOrdersDetails) > 0 {
 		b, err := json.Marshal(strategy.ExchangeOrdersDetails)
 		if err != nil {
