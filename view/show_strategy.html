@@ -1,0 +1,80 @@
+{{ template "header.html" .}}
+<main class="container">
+    <div class="row rounded mb-3">
+        <div class="col">
+            <div class="row">
+                <div class="col-3 text-end">交易所</div>
+                <div class="col-9">{{.strategy.Exchange}}</div>
+            </div>
+            <div class="row">
+                <div class="col-3 text-end">合約</div>
+                <div class="col-9">{{.strategy.Symbol}}</div>
+            </div>
+            <div class="row">
+                <div class="col-3 text-end">方向</div>
+                <div class="col-9">
+                    {{if eq .strategy.Side 1}}
+                        多
+                    {{else if eq .strategy.Side 0 }}
+                        空
+                    {{end}}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-3 text-end">保證金</div>
+                <div class="col-9">${{.strategy.Margin}}</div>
+            </div>
+            <div class="row">
+                <div class="col-3 text-end">策略參數</div>
+                <div class="col-9">
+                    <div class="mb-3">
+                        <textarea class="form-control" rows="3" readonly>{{.params}}</textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-3 text-end">開啟狀態</div>
+                <div class="col-9">
+                    {{if eq .strategy.Enabled 1}}
+                        已開啟
+                    {{else if eq .strategy.Enabled 0 }}
+                        已關閉
+                    {{end}}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-3 text-end">訂單狀態</div>
+                <div class="col-9">
+                    {{if eq .strategy.PositionStatus 2}}
+                        未知狀態,請重置
+                    {{else if eq .strategy.PositionStatus 1 }}
+                        開單中
+                    {{else if eq .strategy.PositionStatus 0 }}
+                        未觸發
+                    {{end}}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-3 text-end">訂單</div>
+                <div class="col-9">
+                    <div class="mb-3">
+                        <textarea class="form-control" rows="3" readonly>{{.ordersDetails}}</textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-3 text-end">上次開倉</div>
+                <div class="col-9">{{.lastPositionAt}}</div>
+            </div>
+            <div class="row">
+                <div class="col-3 text-end">建立時間</div>
+                <div class="col-9">{{.createdAt}}</div>
+            </div>
+            <div class="row">
+                <div class="col-3 text-end">最後更新</div>
+                <div class="col-9">{{.updatedAt}}</div>
+            </div>
+        </div>
+    </div>
+</main>
+{{ template "footer.html" .}}

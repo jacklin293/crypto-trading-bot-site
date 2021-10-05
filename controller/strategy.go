@@ -3,6 +3,7 @@ package controller
 import (
 	"crypto-trading-bot-engine/db"
 	"crypto-trading-bot-engine/exchange"
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -307,8 +308,46 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 		return
 	}
 
-	// TODO check permission
-	c.JSON(http.StatusOK, gin.H{"ShowStrategy": ""})
+	userCookie := ctl.getUserData(c)
+	uuid := c.Param("uuid")
+
+	// Check permission
+	strategy, err := ctl.db.GetContractStrategyByUuidByUser(uuid, userCookie.Uuid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	params, err := json.Marshal(strategy.Params)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"}) // NOTE shouldn't use json, but it shouldn't happen
+		return
+	}
+
+	details := "無"
+	if len(strategy.ExchangeOrdersDetails) > 0 {
+		b, err := json.Marshal(strategy.ExchangeOrdersDetails)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"}) // NOTE shouldn't use json, but it shouldn't happen
+			return
+		}
+		details = string(b)
+	}
+
+	lastPositionAt := strategy.LastPositionAt.Format("2006-01-02 15:04:05")
+	if strategy.LastPositionAt.Unix() < 0 {
+		lastPositionAt = "尚未開倉"
+	}
+
+	c.HTML(http.StatusOK, "show_strategy.html", gin.H{
+		"loggedIn":       true,
+		"strategy":       strategy,
+		"params":         string(params),
+		"ordersDetails":  details,
+		"lastPositionAt": lastPositionAt,
+		"createdAt":      strategy.CreatedAt.Format("2006-01-02 15:04:05"),
+		"updatedAt":      strategy.UpdatedAt.Format("2006-01-02 15:04:05"),
+	})
 }
 
 func (ctl *Controller) DeleteStrategy(c *gin.Context) {
