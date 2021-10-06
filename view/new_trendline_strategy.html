@@ -167,17 +167,16 @@
                 </div>
                 <div class="row mt-2 d-none" id="take-profit-settings">
                     <input type="hidden" name="take_profit[trigger_type]" value="limit"/>
-                    <label class="col-3 col-form-label text-end">當標價</label>
+                    <label class="col-3 col-form-label text-end">停利</label>
                     <div class="col-3 pt-1">
                         <select class="form-select form-select-sm form-select-inline bg-light" aria-label=".form-select-sm" name="take_profit[operator]">
                             <option value=">=">>=</option>
                             <option value="<="><=</option>
                         </select>
                     </div>
-                    <div class="col-3">
+                    <div class="col-6">
                         <input type="input" class="form-control bg-light" name="take_profit[price]" placeholder="e.g. 57000">
                     </div>
-                    <label class="col-3 col-form-label">停利</label>
                 </div>
                 <div class="row mt-2">
                     <label class="col-3 col-form-label text-end" for="comment">註解</label>
@@ -199,6 +198,7 @@
     </div>
 </main>
 {{ template "footer.html" .}}
+<link href="/assets/datetimepicker/flatpickr.css" rel="stylesheet">
 <script src="/assets/datetimepicker/flatpickr.js"></script>
 <script>
 $( document ).ready(function() {

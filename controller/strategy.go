@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"bytes"
 	"crypto-trading-bot-engine/db"
 	"crypto-trading-bot-engine/exchange"
 	"encoding/json"
@@ -149,7 +150,7 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 	})
 }
 
-func (ctl *Controller) NewTrendlineStrategy(c *gin.Context) {
+func (ctl *Controller) NewStrategy(c *gin.Context) {
 	if !ctl.tokenAuthCheck(c) {
 		return
 	}
@@ -174,7 +175,12 @@ func (ctl *Controller) NewTrendlineStrategy(c *gin.Context) {
 		availableMargin = accountInfo["free_collateral"].(decimal.Decimal).Mul(leverage)
 	}
 
-	c.HTML(http.StatusOK, "new_trendline_strategy.html", gin.H{
+	newStrategyHtml := "new_trendline_strategy.html"
+	if c.FullPath() == "/strategy/new_limit" {
+		newStrategyHtml = "new_limit_strategy.html"
+	}
+
+	c.HTML(http.StatusOK, newStrategyHtml, gin.H{
 		"error":           errMsg,
 		"loggedIn":        true,
 		"symbols":         symbols,
@@ -223,47 +229,19 @@ func (ctl *Controller) CreateStrategy(c *gin.Context) {
 		return
 	}
 
-	// Stop-loss or take-profit enabled
-	stopLossEnabled := c.PostForm("stop_loss[enabled]")
-	takeProfitEnabled := c.PostForm("take_profit[enabled]")
-
 	// Convert params
-	params, err := ctl.convertTrendlineStrategyParams(c)
+	var contractParams map[string]interface{}
+	switch c.PostForm("entry_type") {
+	case "trendline":
+		contractParams, err = ctl.processTrendlineContractParams(c)
+	case "limit":
+		contractParams, err = ctl.processLimitContractParams(c)
+	default:
+		err = errors.New("entry type not supported")
+	}
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
-	}
-
-	// Prepare contract params
-	contractParams := map[string]interface{}{
-		"entry_type": c.PostForm("entry_type"),
-		"entry_order": map[string]interface{}{
-			"trendline_trigger": map[string]interface{}{
-				"trigger_type": c.PostForm("entry[trigger_type]"),
-				"operator":     c.PostForm("entry[operator]"),
-				"time_1":       params["time_1"].(time.Time).Format(time.RFC3339),
-				"price_1":      c.PostForm("entry[price_1]"),
-				"time_2":       params["time_2"].(time.Time).Format(time.RFC3339),
-				"price_2":      c.PostForm("entry[price_2]"),
-			},
-			"trendline_offset_percent": params["trendline_offset_percent"].(float64),
-			"flip_operator_enabled":    params["flip_operator_enabled"].(bool),
-		},
-	}
-	if stopLossEnabled == "1" {
-		contractParams["stop_loss_order"] = map[string]interface{}{
-			"loss_tolerance_percent":         params["loss_tolerance_percent"].(float64),
-			"trendline_readjustment_enabled": params["trendline_readjustment_enabled"].(bool),
-		}
-	}
-	if takeProfitEnabled == "1" {
-		contractParams["take_profit_order"] = map[string]interface{}{
-			"trigger": map[string]interface{}{
-				"trigger_type": c.PostForm("take_profit[trigger_type]"),
-				"operator":     c.PostForm("take_profit[operator]"),
-				"price":        c.PostForm("take_profit[price]"),
-			},
-		}
 	}
 
 	// Validate contract params
@@ -310,18 +288,6 @@ func (ctl *Controller) CreateStrategy(c *gin.Context) {
 	return
 }
 
-func (ctl *Controller) NewLimitStrategy(c *gin.Context) {
-	if !ctl.tokenAuthCheck(c) {
-		return
-	}
-
-	var errMsg string
-	c.HTML(http.StatusOK, "new_limit_strategy.html", gin.H{
-		"error":    errMsg,
-		"loggedIn": true,
-	})
-}
-
 func (ctl *Controller) ShowStrategy(c *gin.Context) {
 	if !ctl.tokenAuthCheck(c) {
 		return
@@ -342,6 +308,8 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"}) // NOTE shouldn't use json, but it shouldn't happen
 		return
 	}
+	params = bytes.Replace(params, []byte("\\u003c"), []byte("<"), -1)
+	params = bytes.Replace(params, []byte("\\u003e"), []byte(">"), -1)
 
 	details := "(無)"
 	if len(strategy.ExchangeOrdersDetails) > 0 {
@@ -350,6 +318,8 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"}) // NOTE shouldn't use json, but it shouldn't happen
 			return
 		}
+		b = bytes.Replace(b, []byte("\\u003c"), []byte("<"), -1)
+		b = bytes.Replace(b, []byte("\\u003e"), []byte(">"), -1)
 		details = string(b)
 	}
 
@@ -439,7 +409,103 @@ func (ctl *Controller) newExchange(c *gin.Context) (ex exchange.Exchanger, err e
 	return
 }
 
-func (ctl *Controller) convertTrendlineStrategyParams(c *gin.Context) (map[string]interface{}, error) {
+func (ctl *Controller) processLimitContractParams(c *gin.Context) (map[string]interface{}, error) {
+	// Stop-loss or take-profit enabled
+	stopLossEnabled := c.PostForm("stop_loss[enabled]")
+	takeProfitEnabled := c.PostForm("take_profit[enabled]")
+
+	// flip_operator_enabled
+	var flipOperatorEnabled bool
+	enabled := c.PostForm("entry[flip_operator_enabled]")
+	switch enabled {
+	case "1":
+		flipOperatorEnabled = true
+	case "0":
+		flipOperatorEnabled = false
+	default:
+		return map[string]interface{}{}, errors.New("flip_operator_enabled is invalid")
+	}
+
+	// Prepare contract params
+	contractParams := map[string]interface{}{
+		"entry_type": c.PostForm("entry_type"),
+		"entry_order": map[string]interface{}{
+			"trigger": map[string]interface{}{
+				"trigger_type": c.PostForm("entry[trigger_type]"),
+				"operator":     c.PostForm("entry[operator]"),
+				"price":        c.PostForm("entry[price]"),
+			},
+			"flip_operator_enabled": flipOperatorEnabled,
+		},
+	}
+	if stopLossEnabled == "1" {
+		contractParams["stop_loss_order"] = map[string]interface{}{
+			"trigger": map[string]interface{}{
+				"trigger_type": c.PostForm("stop_loss[trigger_type]"),
+				"operator":     c.PostForm("stop_loss[operator]"),
+				"price":        c.PostForm("stop_loss[price]"),
+			},
+		}
+	}
+	if takeProfitEnabled == "1" {
+		contractParams["take_profit_order"] = map[string]interface{}{
+			"trigger": map[string]interface{}{
+				"trigger_type": c.PostForm("take_profit[trigger_type]"),
+				"operator":     c.PostForm("take_profit[operator]"),
+				"price":        c.PostForm("take_profit[price]"),
+			},
+		}
+	}
+
+	return contractParams, nil
+}
+
+func (ctl *Controller) processTrendlineContractParams(c *gin.Context) (map[string]interface{}, error) {
+	params, err := ctl.convertTrendlineContractParams(c)
+	if err != nil {
+		return map[string]interface{}{}, err
+	}
+
+	// Stop-loss or take-profit enabled
+	stopLossEnabled := c.PostForm("stop_loss[enabled]")
+	takeProfitEnabled := c.PostForm("take_profit[enabled]")
+
+	// Prepare contract params
+	contractParams := map[string]interface{}{
+		"entry_type": c.PostForm("entry_type"),
+		"entry_order": map[string]interface{}{
+			"trendline_trigger": map[string]interface{}{
+				"trigger_type": c.PostForm("entry[trigger_type]"),
+				"operator":     c.PostForm("entry[operator]"),
+				"time_1":       params["time_1"].(time.Time).Format(time.RFC3339),
+				"price_1":      c.PostForm("entry[price_1]"),
+				"time_2":       params["time_2"].(time.Time).Format(time.RFC3339),
+				"price_2":      c.PostForm("entry[price_2]"),
+			},
+			"trendline_offset_percent": params["trendline_offset_percent"].(float64),
+			"flip_operator_enabled":    params["flip_operator_enabled"].(bool),
+		},
+	}
+	if stopLossEnabled == "1" {
+		contractParams["stop_loss_order"] = map[string]interface{}{
+			"loss_tolerance_percent":         params["loss_tolerance_percent"].(float64),
+			"trendline_readjustment_enabled": params["trendline_readjustment_enabled"].(bool),
+		}
+	}
+	if takeProfitEnabled == "1" {
+		contractParams["take_profit_order"] = map[string]interface{}{
+			"trigger": map[string]interface{}{
+				"trigger_type": c.PostForm("take_profit[trigger_type]"),
+				"operator":     c.PostForm("take_profit[operator]"),
+				"price":        c.PostForm("take_profit[price]"),
+			},
+		}
+	}
+
+	return contractParams, nil
+}
+
+func (ctl *Controller) convertTrendlineContractParams(c *gin.Context) (map[string]interface{}, error) {
 	data := make(map[string]interface{})
 
 	// time 1
@@ -479,19 +545,15 @@ func (ctl *Controller) convertTrendlineStrategyParams(c *gin.Context) (map[strin
 	data["trendline_offset_percent"] = float64(int64(p/100*10000)) / 10000 // convert to percent first, then fix float64
 
 	// flip_operator_enabled
-	enabled := c.PostForm("entry[flip_operator_enabled]")
 	data["flip_operator_enabled"] = false
-	if enabled == "" {
-		return data, errors.New("flip_operator_enabled is invalid")
-	}
-	if enabled != "1" && enabled != "0" {
-		return data, errors.New("flip_operator_enabled is invalid")
-	}
-	if enabled == "1" {
+	enabled := c.PostForm("entry[flip_operator_enabled]")
+	switch enabled {
+	case "1":
 		data["flip_operator_enabled"] = true
-	}
-	if enabled == "0" {
+	case "0":
 		data["flip_operator_enabled"] = false
+	default:
+		return data, errors.New("flip_operator_enabled is invalid")
 	}
 
 	// stop loss enabled

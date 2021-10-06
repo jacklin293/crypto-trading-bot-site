@@ -27,8 +27,8 @@ func setRouter(r *gin.Engine, c *controller.Controller) {
 
 	// strategy
 	r.GET("/", c.ListStrategies)
-	r.GET("/strategy/new_trendline", c.NewTrendlineStrategy)
-	r.GET("/strategy/new_limit", c.NewLimitStrategy) // TODO
+	r.GET("/strategy/new_trendline", c.NewStrategy)
+	r.GET("/strategy/new_limit", c.NewStrategy)
 	r.POST("/strategy", c.CreateStrategy)
 	r.GET("/strategy/:uuid", c.ShowStrategy)
 	r.DELETE("/strategy/:uuid", c.DeleteStrategy)

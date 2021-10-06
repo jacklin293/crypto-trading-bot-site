@@ -9,10 +9,196 @@
         </div>
     </div>
     {{ end }}
+
     <div class="row rounded mb-3">
         <div class="col">
-            TODO
+            <form action="/strategy" method="POST" id="strategy-form">
+                <input type="hidden" name="entry_type" value="limit"/>
+                <!-- exchange -->
+                <div class="row">
+                    <label for="exchange" class="col-3 col-form-label text-end">交易所</label>
+                    <div class="col-9">
+                        <input type="text" readonly class="form-control-plaintext" value="FTX">
+                    </div>
+                </div>
+                <!-- symbol -->
+                <div class="row mt-2">
+                    <label for="symbol" class="col-3 col-form-label text-end">合約</label>
+                    <div class="col-9 pt-1">
+                        <select class="form-select form-select-sm form-select-inline bg-light" aria-label=".form-select-sm" name="symbol">
+                            {{ range $i, $s := .symbols}}
+                            <option value="{{$s.Name}}">{{$s.Name}}</option>
+                            {{ end }}
+                        </select>
+                    </div>
+                </div>
+                <!-- side -->
+                <div class="row mt-2">
+                    <label class="col-3 col-form-label text-end">方向</label>
+                    <div class="col-9 pt-2">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input bg-light" type="radio" name="side" value="1" id="long" checked>
+                            <label class="form-check-label" for="long">多</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input bg-light" type="radio" name="side" value="0" id="short">
+                            <label class="form-check-label" for="short">空</label>
+                        </div>
+                    </div>
+                </div>
+                <!-- margin -->
+                <div class="row mt-2">
+                    <label for="margin" class="col-3 col-form-label text-end">保證金</label>
+                    <div class="col-9">
+                        <input type="input" class="form-control bg-light" name="margin" placeholder="e.g. 1000">
+                        <div class="form-text">總可用餘額: {{.availableMargin}}</div>
+                        <div class="form-text">本金: {{.collateral}} ({{.leverage}}x)  總資金: {{.totalMargin}}</div>
+                    </div>
+                </div>
+                <!-- entry trendline -->
+                <div class="row mt-2">
+                    <div class="col">
+                        <input type="hidden" name="entry[trigger_type]" value="limit"/>
+                        <div class="row">
+                            <label class="col-3 col-form-label text-end">開倉</label>
+                            <div class="col-3 pt-1">
+                                <select class="form-select form-select-sm form-select-inline bg-light" aria-label=".form-select-sm" name="entry[operator]">
+                                    <option value=">=">>=</option>
+                                    <option value="<="><=</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <input type="input" class="form-control bg-light" name="entry[price]" placeholder="e.g. 57000">
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <label class="col-3 col-form-label text-end">開倉後</label>
+                            <div class="col-9">
+                                <label class="col-form-label text-end">自動調整Operator</label>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input bg-light" type="radio" name="entry[flip_operator_enabled]" value="1" id="flip-enabled">
+                                    <label class="form-check-label" for="flip-enabled">開</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input bg-light" type="radio" name="entry[flip_operator_enabled]" value="0" id="flip-disabled" checked>
+                                    <label class="form-check-label" for="flip-disabled">關</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- stop loss -->
+                <div class="row mt-2">
+                    <label class="col-3 col-form-label text-end">停損</label>
+                    <div class="col-9 pt-2">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input bg-light" type="radio" name="stop_loss[enabled]" value="1" id="stop-loss-enabled">
+                            <label class="form-check-label" for="stop-loss-enabled">設定</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input bg-light" type="radio" name="stop_loss[enabled]" id="stop-loss-disabled" value="0" checked>
+                            <label class="form-check-label" for="stop-loss-disabled">不設定</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-2 d-none" id="stop-loss-settings">
+                    <input type="hidden" name="stop_loss[trigger_type]" value="limit"/>
+                    <label class="col-3 col-form-label text-end">停損</label>
+                    <div class="col-3 pt-1">
+                        <select class="form-select form-select-sm form-select-inline bg-light" aria-label=".form-select-sm" name="stop_loss[operator]">
+                            <option value=">=">>=</option>
+                            <option value="<="><=</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <input type="input" class="form-control bg-light" name="stop_loss[price]" placeholder="e.g. 57000">
+                    </div>
+                </div>
+                <!-- take profit -->
+                <div class="row mt-2">
+                    <label class="col-3 col-form-label text-end">停利</label>
+                    <div class="col-9 pt-2">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input bg-light" type="radio" name="take_profit[enabled]" value="1" id="take-profit-enabled">
+                            <label class="form-check-label" for="take-profit-enabled">設定</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input bg-light" type="radio" name="take_profit[enabled]" id="take-profit-disabled" value="0" checked>
+                            <label class="form-check-label" for="take-profit-disabled">不設定</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-2 d-none" id="take-profit-settings">
+                    <input type="hidden" name="take_profit[trigger_type]" value="limit"/>
+                    <label class="col-3 col-form-label text-end">停利</label>
+                    <div class="col-3 pt-1">
+                        <select class="form-select form-select-sm form-select-inline bg-light" aria-label=".form-select-sm" name="take_profit[operator]">
+                            <option value=">=">>=</option>
+                            <option value="<="><=</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <input type="input" class="form-control bg-light" name="take_profit[price]" placeholder="e.g. 57000">
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <label class="col-3 col-form-label text-end" for="comment">註解</label>
+                    <div class="col-9 pt-2">
+                        <textarea class="form-control" id="comment" rows="2" placeholder="(選填,需少於100個字元)" name="comment"></textarea>
+                    </div>
+                </div>
+                <!-- submit -->
+                <div class="row mt-2">
+                    <div class="col-3 mx-auto">
+                        <button type="submit" id="submit-button" class="btn btn-primary">送出</button>
+                        <div id="submit-loading" class="spinner-border text-primary d-none ms-3" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 </main>
 {{ template "footer.html" .}}
+<script>
+$( document ).ready(function() {
+    $("#strategy-form").on("submit", function(event){
+        event.preventDefault();
+
+        // loading
+        $('#submit-button').addClass('d-none');
+        $('#submit-loading').removeClass('d-none');
+
+        var formValues= $(this).serialize();
+        $.post("/strategy", formValues, function(data){
+            location.href = "/?success=strategy_created";
+        }).fail(function(data){
+            alert(data.responseJSON.error);
+        });
+        // free loading
+        $('#submit-button').removeClass('d-none');
+        $('#submit-loading').addClass('d-none');
+    });
+
+    // stop-loss
+    $("input[name='stop_loss[enabled]']").click(function() {
+        var checked = $("input[name='stop_loss[enabled]']:checked").val();
+        if (checked === "1") {
+            $('#stop-loss-settings').removeClass("d-none");
+        } else {
+            $('#stop-loss-settings').addClass("d-none");
+        }
+    });
+
+    // take-profit
+    $("input[name='take_profit[enabled]']").click(function() {
+        var checked = $("input[name='take_profit[enabled]']:checked").val();
+        if (checked === "1") {
+            $('#take-profit-settings').removeClass("d-none");
+        } else {
+            $('#take-profit-settings').addClass("d-none");
+        }
+    });
+});
+</script>
