@@ -7,11 +7,14 @@ require (
 	github.com/gin-gonic/gin v1.7.4
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/sessions v1.1.3
+	github.com/leekchan/accounting v1.0.0
 	github.com/shopspring/decimal v1.2.0
 	github.com/spf13/viper v1.9.0
+	gorm.io/datatypes v1.0.2
 )
 
 require (
+	github.com/cockroachdb/apd v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.13.0 // indirect
@@ -49,7 +52,6 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/ini.v1 v1.63.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gorm.io/datatypes v1.0.2 // indirect
 	gorm.io/driver/mysql v1.1.2 // indirect
 	gorm.io/gorm v1.21.15 // indirect
 )

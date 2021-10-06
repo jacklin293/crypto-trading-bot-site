@@ -16,6 +16,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/leekchan/accounting"
 	"github.com/shopspring/decimal"
 	"github.com/spf13/viper"
 	"gorm.io/datatypes"
@@ -30,7 +31,6 @@ type StrategyTmpl struct {
 	SymbolPart2    string
 	Side           int64
 	Leverage       string
-	Margin         string
 	Enabled        int64
 	PositionStatus int64
 	EntryPrice     string
@@ -45,9 +45,11 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 		return
 	}
 
+	// Allow other pages bring message to here and show on lsit page
 	var errMsg string
 	success := c.Query("success")
 
+	// Get user from cookie
 	userCookie := ctl.getUserData(c)
 
 	// Get exchange account info
@@ -63,6 +65,9 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 		errMsg = "Internal error"
 	}
 
+	// For money and currency formatting
+	ac := accounting.Accounting{Symbol: "$", Precision: 8}
+
 	symbolMap := make(map[string]bool)
 	var strategyTmpls []StrategyTmpl
 	for _, cs := range css {
@@ -72,11 +77,16 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 		symbol := strings.Split(cs.Symbol, "-")
 
 		// (position status: 1) Get entry price if position has been opened
+		var boughtPrice decimal.Decimal
 		if len(cs.ExchangeOrdersDetails) != 0 {
 			entryOrder, ok := cs.ExchangeOrdersDetails["entry_order"].(map[string]interface{})
 			if ok {
-				// position will show this price
-				st.BoughtPrice = entryOrder["price"].(string)
+				boughtPrice, err = decimal.NewFromString(entryOrder["price"].(string))
+				if err != nil {
+					log.Println("strategy controller - failed to convert entryOrder[price], err: ", err)
+					errMsg = "Internal error"
+					continue
+				}
 			}
 		}
 
@@ -89,18 +99,18 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 				continue
 			}
 			// This doesn't matter for position
-			st.EntryPrice = contract.EntryOrder.GetTrigger().GetPrice(time.Now()).Truncate(5).String()
+			st.EntryPrice = ac.FormatMoneyDecimal(contract.EntryOrder.GetTrigger().GetPrice(time.Now()))
 
 			if contract.StopLossOrder != nil {
 				// If entry_type is trendline, stop-loss trigger will be filled after entry order triggered
 				stopLossTrigger := contract.StopLossOrder.GetTrigger()
 				if stopLossTrigger != nil {
-					st.StopLoss = stopLossTrigger.GetPrice(time.Now()).String()
+					st.StopLoss = ac.FormatMoneyDecimal(stopLossTrigger.GetPrice(time.Now()))
 				}
 			}
 
 			if contract.TakeProfitOrder != nil {
-				st.TakeProfit = contract.TakeProfitOrder.GetTrigger().GetPrice(time.Now()).String()
+				st.TakeProfit = ac.FormatMoneyDecimal(contract.TakeProfitOrder.GetTrigger().GetPrice(time.Now()))
 			}
 		}
 
@@ -114,9 +124,9 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 		st.SymbolPart1 = symbol[0]
 		st.SymbolPart2 = symbol[1]
 		st.Side = cs.Side
-		st.Margin = cs.Margin.String()
 		st.Enabled = cs.Enabled
 		st.PositionStatus = cs.PositionStatus
+		st.BoughtPrice = ac.FormatMoneyDecimal(boughtPrice)
 		st.Comment = cs.Comment
 		strategyTmpls = append(strategyTmpls, st)
 
