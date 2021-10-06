@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
@@ -144,6 +145,18 @@ func (ctl *Controller) ClosePosition(c *gin.Context) {
 		return
 	}
 
+	// Check if the position is opened
+	if contract.Status(cs.PositionStatus) != contract.OPENED {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "此策略並未開倉"})
+		return
+	}
+
+	// Check if order details exist
+	if len(cs.ExchangeOrdersDetails) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
+		return
+	}
+
 	// Make sure it's not tracked by engine
 	if err = ctl.notBeingTrackedByEngine(c, uuid); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -230,15 +243,19 @@ func (ctl *Controller) closeOpenPositionAndStopLossOrder(c *gin.Context, cs *db.
 	// Place order
 	orderId, err := ex.RetryClosePosition(cs.Symbol, order.Side(cs.Side), size, 30, 2)
 	if err != nil {
+		if strings.Contains(err.Error(), "Invalid reduce-only order") {
+			log.Println("[ERROR] order could be closed by FTX already, err: ", err)
+			return map[string]interface{}{}, fmt.Errorf("訂單可能已經關閉,請到 %s APP 確認,確認後請重置狀態", cs.Exchange)
+		}
 		log.Println("[ERROR] failed to close position, err: ", err)
-		return map[string]interface{}{}, fmt.Errorf("%s server responded: '%s'", viper.GetString("DEFAULT_EXCHANGE"), err.Error())
+		return map[string]interface{}{}, fmt.Errorf("%s server responded: '%s'", cs.Exchange, err.Error())
 	}
 
 	// Check position is created
 	orderInfo, count, err := ex.RetryGetPosition(orderId, 30, 2)
 	if err != nil {
 		log.Println("[ERROR] failed to get position, err: ", err)
-		return map[string]interface{}{}, fmt.Errorf("%s server error: '%s'", viper.GetString("DEFAULT_EXCHANGE"), err.Error())
+		return map[string]interface{}{}, fmt.Errorf("%s server error: '%s'", cs.Exchange, err.Error())
 	}
 	if count == 0 {
 		log.Println("[ERROR] no position was found")
@@ -253,7 +270,7 @@ func (ctl *Controller) closeOpenPositionAndStopLossOrder(c *gin.Context, cs *db.
 		err = ex.RetryCancelOpenTriggerOrder(stopLossOrderId, 20, 2)
 		if err != nil {
 			log.Println("[ERROR] failed to cancel stop-loss order, err: ", err)
-			return map[string]interface{}{}, fmt.Errorf("無法取消停損訂單, %s server error: '%s'", viper.GetString("DEFAULT_EXCHANGE"), err.Error())
+			return map[string]interface{}{}, fmt.Errorf("無法取消停損訂單, %s server error: '%s'", cs.Exchange, err.Error())
 		}
 	}
 
