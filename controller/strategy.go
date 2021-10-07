@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"crypto-trading-bot-engine/db"
 	"crypto-trading-bot-engine/exchange"
+	"crypto-trading-bot-engine/util/aes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -56,7 +59,7 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 	// Get exchange account info
 	accountInfo, err := ctl.getExchangeAccountInfo(c)
 	if err != nil {
-		errMsg = "FTX API server is down"
+		errMsg = fmt.Sprintf("%s API server 無回應或 API Key 已失效", viper.GetString("DEFAULT_EXCHANGE"))
 	}
 
 	// Get user data
@@ -158,7 +161,7 @@ func (ctl *Controller) NewStrategy(c *gin.Context) {
 	var errMsg string
 
 	// Get symbols
-	symbols, _, err := ctl.db.GetEnabledContractSymbols("FTX")
+	symbols, _, err := ctl.db.GetEnabledContractSymbols(viper.GetString("DEFAULT_EXCHANGE"))
 	if err != nil {
 		c.HTML(http.StatusOK, "new_trendline_strategy.html", gin.H{"error": "Symbols not found"})
 		return
@@ -167,7 +170,7 @@ func (ctl *Controller) NewStrategy(c *gin.Context) {
 	var collateral, leverage, totalMargin, availableMargin decimal.Decimal
 	accountInfo, err := ctl.getExchangeAccountInfo(c)
 	if err != nil {
-		errMsg = "FTX API server is down"
+		errMsg = fmt.Sprintf("%s API server 無回應或 API Key 已失效", viper.GetString("DEFAULT_EXCHANGE"))
 	} else {
 		collateral = accountInfo["collateral"].(decimal.Decimal)
 		leverage = accountInfo["leverage"].(decimal.Decimal)
@@ -198,7 +201,7 @@ func (ctl *Controller) CreateStrategy(c *gin.Context) {
 
 	// Validate symbols
 	symbol := c.PostForm("symbol")
-	symbolrows, _, err := ctl.db.GetEnabledContractSymbols("FTX")
+	symbolrows, _, err := ctl.db.GetEnabledContractSymbols(viper.GetString("DEFAULT_EXCHANGE"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error: symbols not found"})
 		return
@@ -262,7 +265,7 @@ func (ctl *Controller) CreateStrategy(c *gin.Context) {
 		Params:                contractParams,
 		Enabled:               0,
 		PositionStatus:        0,
-		Exchange:              "FTX",
+		Exchange:              viper.GetString("DEFAULT_EXCHANGE"),
 		ExchangeOrdersDetails: datatypes.JSONMap{},
 		Comment:               c.PostForm("comment"),
 	}
@@ -399,8 +402,43 @@ func (ctl *Controller) newExchange(c *gin.Context) (ex exchange.Exchanger, err e
 		return
 	}
 
+	if user.ExchangeApiKey == "" {
+		err = errors.New("請先新增 API Key")
+		return
+	}
+
+	encryptedData := strings.Split(user.ExchangeApiKey, ";")
+	iv64 := encryptedData[0]
+	data64 := encryptedData[1]
+	key, err := hex.DecodeString(viper.GetString("AES_PRIVATE_KEY"))
+	if err != nil {
+		log.Println("newExchange err:", err)
+		return
+	}
+	text, err := aes.Decrypt(key, iv64, data64)
+	if err != nil {
+		log.Println("newExchange err:", err)
+		return
+	}
+	// NOTE for fixing `invalid character '\x00' after top-level value`
+	text = bytes.Trim(text, "\x00")
+
+	// Exchange API Key
+	info := make(map[string]interface{})
+	if err = json.Unmarshal(text, &info); err != nil {
+		log.Println("newExchange err:", err)
+		return
+	}
+
+	// Make sure there is a key for exchange
+	exData, ok := info[viper.GetString("DEFAULT_EXCHANGE")].(map[string]interface{})
+	if !ok {
+		log.Println("exchange data not found")
+		return
+	}
+
 	// New exchange
-	ex, err = exchange.NewExchange(viper.GetString("DEFAULT_EXCHANGE"), user.ExchangeApiInfo)
+	ex, err = exchange.NewExchange(viper.GetString("DEFAULT_EXCHANGE"), exData)
 	if err != nil {
 		log.Println("[ERROR] failed to new exchange")
 		err = errors.New("API Key 可能已失效, 請確認或重試一次")

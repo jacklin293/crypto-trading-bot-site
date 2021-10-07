@@ -298,18 +298,16 @@ func (ctl *Controller) getSignaturePrefixKey(uuid string, username string, expir
 
 // signature = []byte({uuid}-{username}-{expiryTs}) + []byte(salt)
 func (ctl *Controller) getSignatureHash(sigKey []byte) ([]byte, error) {
-	// Get signature salt
-	salt, err := base64.StdEncoding.DecodeString(viper.GetString("SHA256_HASH_SALT"))
+	// Combine prefix key with salt
+	salt, err := hex.DecodeString(viper.GetString("SHA256_HASH_SALT"))
 	if err != nil {
 		return []byte{}, err
 	}
-
-	// Combine prefix key with salt
 	sigKey = append(sigKey, salt...)
 
 	// Hash signature key
 	h := sha256.New()
-	_, err = h.Write([]byte(sigKey))
+	_, err = h.Write(sigKey)
 	if err != nil {
 		return []byte{}, err
 	}

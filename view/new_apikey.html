@@ -1,0 +1,107 @@
+{{ template "header.html" .}}
+<main class="container">
+    <div class="row rounded mb-3">
+        <div class="col">
+            {{ if ne .errMsg "" }}
+            <div class="alert alert-danger" role="alert">
+                {{ if eq .errMsg "internal_error" }}
+                    Internal error
+                {{ end }}
+                {{ if eq .errMsg "empty_data" }}
+                    請確認欄位是否都填寫
+                {{ end }}
+            </div>
+            {{ end }}
+            {{ if ne .success "" }}
+            <div class="alert alert-success" role="alert">
+                {{ if eq .success "update" }}
+                    成功更新 API Key
+                {{ end }}
+                {{ if eq .success "delete" }}
+                    成功刪除 API Key
+                {{ end }}
+            </div>
+            {{ end }}
+        </div>
+    </div>
+    <div class="row rounded mb-3">
+        <div class="col col-8">
+            <form id="login-form" action="/user/apikey/update" method="POST">
+                <div class="mb-3">
+                    <label class="form-label">FTX subaccount name</label>
+                    <input type="input" class="form-control" name="subaccount">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">API Key</label>
+                    <input type="input" class="form-control" name="api_key">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">API Secret</label>
+                    <input type="input" class="form-control" name="api_secret">
+                </div>
+                <div>
+                    <div class="mb-3">
+                        <div id="loading" class="spinner-border text-primary align-middle d-none" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <button type="submit" id="submit-button" class="btn btn-primary action-button">送出</button>
+                        <input type="button" id="test-button" class="btn btn-primary action-button" value="測試"/>
+                        <input type="button" id="delete-button" class="btn btn-primary action-button" value="刪除"/>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{{ template "footer.html" .}}
+<script>
+$( document ).ready(function() {
+    $('.action-button').click(function() {
+        $('#submit-button').addClass('d-none');
+        $('#test-button').addClass('d-none');
+        $('#delete-button').addClass('d-none');
+        $('#loading').removeClass('d-none');
+    });
+
+    // Test
+    $('#test-button').click(function() {
+        $.ajax({
+            type: 'GET',
+            url: '/user/apikey/test',
+            success: function(data) {
+                alert("success");
+                // FIXME refactor
+                $('#submit-button').removeClass('d-none');
+                $('#test-button').removeClass('d-none');
+                $('#delete-button').removeClass('d-none');
+                $('#loading').addClass('d-none');
+            }
+        }).fail(function(data) {
+            alert(data.responseJSON.error);
+            // FIXME refactor
+            $('#submit-button').removeClass('d-none');
+            $('#test-button').removeClass('d-none');
+            $('#delete-button').removeClass('d-none');
+            $('#loading').addClass('d-none');
+        });
+    });
+
+    // Delete
+    $('#delete-button').click(function() {
+        $.ajax({
+            type: 'DELETE',
+            url: '/user/apikey',
+            success: function(data) {
+                location.href = "/user/apikey/new?success=delete";
+            }
+        }).fail(function(data) {
+            alert(data.statusText);
+            // FIXME refactor
+            $('#submit-button').removeClass('d-none');
+            $('#test-button').removeClass('d-none');
+            $('#delete-button').removeClass('d-none');
+            $('#loading').addClass('d-none');
+        });
+    });
+});
+</script>

@@ -19,13 +19,17 @@ func setRouter(r *gin.Engine, c *controller.Controller) {
 	// Release log
 	r.GET("/releases", c.Releases)
 
-	// Account
+	// User
 	r.GET("/login", c.LoginPage)
 	r.POST("/login", c.LoginAPI)
 	r.POST("/otp", c.OTP)
 	r.GET("/logout", c.Logout)
+	r.GET("/user/apikey/new", c.NewApiKey)
+	r.POST("/user/apikey/update", c.UpdateApiKey)
+	r.GET("/user/apikey/test", c.TestApiKey)
+	r.DELETE("/user/apikey", c.DeleteApiKey)
 
-	// strategy
+	// Strategy
 	r.GET("/", c.ListStrategies)
 	r.GET("/strategy/new_trendline", c.NewStrategy)
 	r.GET("/strategy/new_limit", c.NewStrategy)
@@ -33,7 +37,7 @@ func setRouter(r *gin.Engine, c *controller.Controller) {
 	r.GET("/strategy/:uuid", c.ShowStrategy)
 	r.DELETE("/strategy/:uuid", c.DeleteStrategy)
 
-	// action
+	// Action
 	r.GET("/action/enable_strategy/:uuid", c.EnableStrategy)
 	r.GET("/action/disable_strategy/:uuid", c.DisableStrategy)
 	r.GET("/action/reset_strategy/:uuid", c.ResetStrategy)

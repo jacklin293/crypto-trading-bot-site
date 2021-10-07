@@ -3,7 +3,7 @@ package controller
 import (
 	"crypto-trading-bot-engine/db"
 	"crypto-trading-bot-engine/message"
-	"encoding/base64"
+	"encoding/hex"
 	"log"
 	"net/http"
 
@@ -40,13 +40,11 @@ func InitController() *Controller {
 		log.Fatal(err)
 	}
 
-	// base64 decode key
-	authKey, err := base64.StdEncoding.DecodeString(viper.GetString("SESSION_AUTHENTICATION_KEY"))
+	authKey, err := hex.DecodeString(viper.GetString("SESSION_AUTHENTICATION_KEY"))
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	encryptKey, err := base64.StdEncoding.DecodeString(viper.GetString("SESSION_ENCRYPTION_KEY"))
+	encryptKey, err := hex.DecodeString(viper.GetString("SESSION_ENCRYPTION_KEY"))
 	if err != nil {
 		log.Fatal(err)
 	}
