@@ -3,6 +3,7 @@ package controller
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,8 +14,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
+	"github.com/sethvargo/go-password/password"
 	"github.com/spf13/viper"
 )
 
@@ -76,8 +77,16 @@ func (ctl *Controller) LoginAPI(c *gin.Context) {
 		return
 	}
 
+	// Hash password with sha256
+	pwdHash, err := ctl.hashPassword(u.Password)
+	if err != nil {
+		log.Println("LoginAPI err: ", err)
+		ctl.redirectToLoginPage(c, "/login?err=login_failed")
+		return
+	}
+
 	// Get user by username namd password
-	user, err := ctl.db.GetUserByUsernameByPassword(u.Username, u.Password)
+	user, err := ctl.db.GetUserByUsernameByPassword(u.Username, pwdHash)
 	if err != nil {
 		log.Println("LoginAPI err: ", err)
 		ctl.redirectToLoginPage(c, "/login?err=login_failed")
@@ -105,7 +114,8 @@ func (ctl *Controller) LoginAPI(c *gin.Context) {
 
 	// Generate signature
 	expiryTs := time.Now().Add(time.Second * 86400 * LOGIN_EXPIRY_LENGTH_DAY).Unix()
-	hash, err := ctl.getSignatureHash(user.Uuid, user.Username, expiryTs)
+	prefixKey := ctl.getSignaturePrefixKey(user.Uuid, user.Username, expiryTs)
+	hash, err := ctl.getSignatureHash(prefixKey)
 	if err != nil {
 		log.Println("LoginAPI err: ", err)
 		ctl.redirectToLoginPage(c, "/login?err=login_failed")
@@ -157,16 +167,27 @@ func (ctl *Controller) OTP(c *gin.Context) {
 		return
 	}
 
-	// Generate one-time password
-	otp := uuid.New().String()
+	// Generate one-time password, length 23 that contains 4 digits and 4 symbols
+	otp, err := password.Generate(18, 3, 3, false, false)
+	if err != nil {
+		failJSONWithVagueError(c, "123 OTP", err)
+		return
+	}
 
 	// Send password via telegram
 	ctl.sender.Send(user.TelegramChatId, "One-time password:")
 	ctl.sender.Send(user.TelegramChatId, otp)
 
+	// Hash password with sha256
+	otpHash, err := ctl.hashPassword(otp)
+	if err != nil {
+		failJSONWithVagueError(c, "456 OTP", err)
+		return
+	}
+
 	// Update user
 	data := map[string]interface{}{
-		"password":            otp,
+		"password":            otpHash,
 		"password_expired_at": time.Now().Add(time.Second * time.Duration(OTP_EXPIRY_SECOND)),
 	}
 	if _, err = ctl.db.UpdateUser(user.Uuid, data); err != nil {
@@ -255,7 +276,8 @@ func (ctl *Controller) tokenAuthCheck(c *gin.Context) bool {
 	}
 
 	// hash gnenrated by cookie data
-	hash, err := ctl.getSignatureHash(uuid, username, expiryTs)
+	prefixKey := ctl.getSignaturePrefixKey(uuid, username, expiryTs)
+	hash, err := ctl.getSignatureHash(prefixKey)
 	if err != nil {
 		ctl.redirectToLoginPage(c, "/login?err=internal_error")
 		return false
@@ -269,15 +291,20 @@ func (ctl *Controller) tokenAuthCheck(c *gin.Context) bool {
 	return true
 }
 
+func (ctl *Controller) getSignaturePrefixKey(uuid string, username string, expiryTs int64) []byte {
+	s := fmt.Sprintf("%s-%s-%d", uuid, username, expiryTs)
+	return []byte(s)
+}
+
 // signature = []byte({uuid}-{username}-{expiryTs}) + []byte(salt)
-func (ctl *Controller) getSignatureHash(uuid string, username string, expiryTs int64) ([]byte, error) {
-	// Get signature key
-	salt, err := base64.StdEncoding.DecodeString(viper.GetString("SESSION_SIGNATURE_SALT"))
+func (ctl *Controller) getSignatureHash(sigKey []byte) ([]byte, error) {
+	// Get signature salt
+	salt, err := base64.StdEncoding.DecodeString(viper.GetString("SHA256_HASH_SALT"))
 	if err != nil {
 		return []byte{}, err
 	}
-	s := fmt.Sprintf("%s-%s-%d", uuid, username, expiryTs)
-	sigKey := []byte(s)
+
+	// Combine prefix key with salt
 	sigKey = append(sigKey, salt...)
 
 	// Hash signature key
@@ -287,5 +314,12 @@ func (ctl *Controller) getSignatureHash(uuid string, username string, expiryTs i
 		return []byte{}, err
 	}
 	return h.Sum(nil), nil
+}
 
+func (ctl *Controller) hashPassword(pwd string) (string, error) {
+	hash, err := ctl.getSignatureHash([]byte(pwd))
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(hash), nil
 }

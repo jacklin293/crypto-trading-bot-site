@@ -8,6 +8,7 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/sessions v1.1.3
 	github.com/leekchan/accounting v1.0.0
+	github.com/sethvargo/go-password v0.2.0
 	github.com/shopspring/decimal v1.2.0
 	github.com/spf13/viper v1.9.0
 	gorm.io/datatypes v1.0.2
