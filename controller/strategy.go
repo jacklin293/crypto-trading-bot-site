@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"crypto-trading-bot-engine/db"
 	"crypto-trading-bot-engine/exchange"
-	"crypto-trading-bot-engine/util/aes"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -407,38 +405,8 @@ func (ctl *Controller) newExchange(c *gin.Context) (ex exchange.Exchanger, err e
 		return
 	}
 
-	encryptedData := strings.Split(user.ExchangeApiKey, ";")
-	iv64 := encryptedData[0]
-	data64 := encryptedData[1]
-	key, err := hex.DecodeString(viper.GetString("AES_PRIVATE_KEY"))
-	if err != nil {
-		log.Println("newExchange err:", err)
-		return
-	}
-	text, err := aes.Decrypt(key, iv64, data64)
-	if err != nil {
-		log.Println("newExchange err:", err)
-		return
-	}
-	// NOTE for fixing `invalid character '\x00' after top-level value`
-	text = bytes.Trim(text, "\x00")
-
-	// Exchange API Key
-	info := make(map[string]interface{})
-	if err = json.Unmarshal(text, &info); err != nil {
-		log.Println("newExchange err:", err)
-		return
-	}
-
-	// Make sure there is a key for exchange
-	exData, ok := info[viper.GetString("DEFAULT_EXCHANGE")].(map[string]interface{})
-	if !ok {
-		log.Println("exchange data not found")
-		return
-	}
-
 	// New exchange
-	ex, err = exchange.NewExchange(viper.GetString("DEFAULT_EXCHANGE"), exData)
+	ex, err = exchange.NewExchange(viper.GetString("DEFAULT_EXCHANGE"), user.ExchangeApiKey)
 	if err != nil {
 		log.Println("[ERROR] failed to new exchange")
 		err = errors.New("API Key 可能已失效, 請確認或重試一次")
