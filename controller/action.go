@@ -11,11 +11,16 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
 	"github.com/spf13/viper"
 	"gorm.io/datatypes"
+)
+
+const (
+	ENGINE_REQUEST_TIMEOUT_SECOND = 5
 )
 
 func (ctl *Controller) EnableStrategy(c *gin.Context) {
@@ -196,7 +201,10 @@ func (ctl *Controller) ClosePosition(c *gin.Context) {
 }
 
 func (ctl *Controller) makeRequestToEngine(path string) ([]byte, error) {
-	response, err := http.Get(viper.GetString("ENGINE_URL") + path)
+	client := http.Client{
+		Timeout: time.Second * time.Duration(ENGINE_REQUEST_TIMEOUT_SECOND),
+	}
+	response, err := client.Get(viper.GetString("ENGINE_URL") + path)
 	if err != nil {
 		return []byte{}, err
 	}
