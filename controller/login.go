@@ -114,7 +114,7 @@ func (ctl *Controller) LoginAPI(c *gin.Context) {
 
 	// Generate signature
 	expiryTs := time.Now().Add(time.Second * 86400 * LOGIN_EXPIRY_LENGTH_DAY).Unix()
-	prefixKey := ctl.getSignaturePrefixKey(user.Uuid, user.Username, expiryTs)
+	prefixKey := ctl.getSignaturePrefixKey(user.Uuid, expiryTs)
 	hash, err := ctl.getSignatureHash(prefixKey)
 	if err != nil {
 		log.Println("LoginAPI err: ", err)
@@ -124,8 +124,6 @@ func (ctl *Controller) LoginAPI(c *gin.Context) {
 	signature := base64.StdEncoding.EncodeToString(hash)
 
 	session.Values["uuid"] = user.Uuid
-	session.Values["telegram_chat_id"] = user.TelegramChatId
-	session.Values["username"] = user.Username
 	session.Values["expiry_ts"] = expiryTs
 	session.Values["signature"] = signature
 	session.Options = &sessions.Options{
@@ -248,16 +246,7 @@ func (ctl *Controller) tokenAuthCheck(c *gin.Context) bool {
 		return false
 	}
 
-	if _, ok := session.Values["telegram_chat_id"].(int64); !ok {
-		ctl.redirectToLoginPage(c, "/login?err=please_login")
-		return false
-	}
 	uuid, ok := session.Values["uuid"].(string)
-	if !ok {
-		ctl.redirectToLoginPage(c, "/login?err=please_login")
-		return false
-	}
-	username, ok := session.Values["username"].(string)
 	if !ok {
 		ctl.redirectToLoginPage(c, "/login?err=please_login")
 		return false
@@ -276,7 +265,7 @@ func (ctl *Controller) tokenAuthCheck(c *gin.Context) bool {
 	}
 
 	// hash gnenrated by cookie data
-	prefixKey := ctl.getSignaturePrefixKey(uuid, username, expiryTs)
+	prefixKey := ctl.getSignaturePrefixKey(uuid, expiryTs)
 	hash, err := ctl.getSignatureHash(prefixKey)
 	if err != nil {
 		ctl.redirectToLoginPage(c, "/login?err=internal_error")
@@ -291,12 +280,11 @@ func (ctl *Controller) tokenAuthCheck(c *gin.Context) bool {
 	return true
 }
 
-func (ctl *Controller) getSignaturePrefixKey(uuid string, username string, expiryTs int64) []byte {
-	s := fmt.Sprintf("%s-%s-%d", uuid, username, expiryTs)
+func (ctl *Controller) getSignaturePrefixKey(uuid string, expiryTs int64) []byte {
+	s := fmt.Sprintf("%s-%d", uuid, expiryTs)
 	return []byte(s)
 }
 
-// signature = []byte({uuid}-{username}-{expiryTs}) + []byte(salt)
 func (ctl *Controller) getSignatureHash(sigKey []byte) ([]byte, error) {
 	// Combine prefix key with salt
 	salt, err := hex.DecodeString(viper.GetString("SHA256_HASH_SALT"))

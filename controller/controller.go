@@ -19,9 +19,7 @@ type Controller struct {
 }
 
 type UserData struct {
-	Uuid           string
-	TelegramChatId int64
-	Username       string
+	Uuid string
 }
 
 func InitController() *Controller {
@@ -71,9 +69,7 @@ func failJSONWithVagueError(c *gin.Context, caller string, err error) {
 func (ctl *Controller) getUserData(c *gin.Context) *UserData {
 	session, _ := ctl.store.Get(c.Request, "user-session")
 	return &UserData{
-		Uuid:           session.Values["uuid"].(string),
-		TelegramChatId: session.Values["telegram_chat_id"].(int64),
-		Username:       session.Values["username"].(string),
+		Uuid: session.Values["uuid"].(string),
 	}
 }
 
