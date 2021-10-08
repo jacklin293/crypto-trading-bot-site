@@ -1,5 +1,5 @@
 {{ template "header.html" .}}
-<main class="container">
+<div class="container">
     {{ if ne .error "" }}
     <div class="row rounded mb-3">
         <div class="col">
@@ -197,7 +197,7 @@
             </form>
         </div>
     </div>
-</main>
+</div>
 {{ template "footer.html" .}}
 <link href="/assets/datetimepicker/flatpickr.css" rel="stylesheet">
 <script src="/assets/datetimepicker/flatpickr.js"></script>

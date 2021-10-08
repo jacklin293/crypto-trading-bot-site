@@ -1,5 +1,5 @@
 {{ template "header.html" .}}
-<main class="container">
+<div class="container">
     {{ if ne .error "" }}
     <div class="row rounded mb-3">
         <div class="col">
@@ -162,7 +162,7 @@
             </form>
         </div>
     </div>
-</main>
+</div>
 {{ template "footer.html" .}}
 <script>
 $( document ).ready(function() {

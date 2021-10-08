@@ -1,7 +1,11 @@
 {{ template "header.html" .}}
-<main class="container">
+<div class="container">
     <div class="row rounded mb-3">
         <div class="col">
+            <div class="row">
+                <div class="col-3 text-end">UUID</div>
+                <div class="col-9">{{.strategy.Uuid}}</div>
+            </div>
             <div class="row">
                 <div class="col-3 text-end">交易所</div>
                 <div class="col-9">{{.strategy.Exchange}}</div>
@@ -84,5 +88,5 @@
             </div>
         </div>
     </div>
-</main>
+</div>
 {{ template "footer.html" .}}
