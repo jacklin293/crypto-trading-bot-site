@@ -19,6 +19,9 @@ func setRouter(r *gin.Engine, c *controller.Controller) {
 	// Release log
 	r.GET("/releases", c.Releases)
 
+	// Admin
+	r.GET("/engine", c.Engine)
+
 	// User
 	r.GET("/login", c.LoginPage)
 	r.POST("/login", c.LoginAPI)

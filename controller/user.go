@@ -21,6 +21,7 @@ func (ctl *Controller) NewApiKey(c *gin.Context) {
 
 	c.HTML(http.StatusOK, "new_apikey.html", gin.H{
 		"loggedIn": true,
+		"role":     ctl.getUserData(c).Role,
 		"success":  success,
 		"errMsg":   errMsg,
 	})

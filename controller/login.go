@@ -114,7 +114,7 @@ func (ctl *Controller) LoginAPI(c *gin.Context) {
 
 	// Generate signature
 	expiryTs := time.Now().Add(time.Second * 86400 * LOGIN_EXPIRY_LENGTH_DAY).Unix()
-	prefixKey := ctl.getSignaturePrefixKey(user.Uuid, expiryTs)
+	prefixKey := ctl.getSignaturePrefixKey(user.Uuid, user.Role, expiryTs)
 	hash, err := ctl.getSignatureHash(prefixKey)
 	if err != nil {
 		log.Println("LoginAPI err: ", err)
@@ -124,6 +124,7 @@ func (ctl *Controller) LoginAPI(c *gin.Context) {
 	signature := base64.StdEncoding.EncodeToString(hash)
 
 	session.Values["uuid"] = user.Uuid
+	session.Values["role"] = user.Role
 	session.Values["expiry_ts"] = expiryTs
 	session.Values["signature"] = signature
 	session.Options = &sessions.Options{
@@ -252,6 +253,12 @@ func (ctl *Controller) tokenAuthCheck(c *gin.Context) bool {
 		return false
 	}
 
+	role, ok := session.Values["role"].(int64)
+	if !ok {
+		ctl.redirectToLoginPage(c, "/login?err=please_login")
+		return false
+	}
+
 	// signature signed by server
 	signature, ok := session.Values["signature"].(string)
 	if !ok {
@@ -265,7 +272,7 @@ func (ctl *Controller) tokenAuthCheck(c *gin.Context) bool {
 	}
 
 	// hash gnenrated by cookie data
-	prefixKey := ctl.getSignaturePrefixKey(uuid, expiryTs)
+	prefixKey := ctl.getSignaturePrefixKey(uuid, role, expiryTs)
 	hash, err := ctl.getSignatureHash(prefixKey)
 	if err != nil {
 		ctl.redirectToLoginPage(c, "/login?err=internal_error")
@@ -280,8 +287,8 @@ func (ctl *Controller) tokenAuthCheck(c *gin.Context) bool {
 	return true
 }
 
-func (ctl *Controller) getSignaturePrefixKey(uuid string, expiryTs int64) []byte {
-	s := fmt.Sprintf("%s-%d", uuid, expiryTs)
+func (ctl *Controller) getSignaturePrefixKey(uuid string, role int64, expiryTs int64) []byte {
+	s := fmt.Sprintf("%s-%d-%d", uuid, expiryTs)
 	return []byte(s)
 }
 

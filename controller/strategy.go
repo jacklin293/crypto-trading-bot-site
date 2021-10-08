@@ -143,10 +143,11 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "list_strategies.html", gin.H{
+		"loggedIn":   true,
+		"role":       userCookie.Role,
 		"symbols":    symbols,
 		"strategies": strategyTmpls,
 		"error":      errMsg,
-		"loggedIn":   true,
 		"success":    success,
 	})
 }
@@ -182,8 +183,9 @@ func (ctl *Controller) NewStrategy(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, newStrategyHtml, gin.H{
-		"error":           errMsg,
 		"loggedIn":        true,
+		"role":            ctl.getUserData(c).Role,
+		"error":           errMsg,
 		"symbols":         symbols,
 		"collateral":      collateral.StringFixed(1),
 		"leverage":        leverage.StringFixed(0),
@@ -331,6 +333,7 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 
 	c.HTML(http.StatusOK, "show_strategy.html", gin.H{
 		"loggedIn":       true,
+		"role":           userCookie.Role,
 		"strategy":       strategy,
 		"params":         string(params),
 		"ordersDetails":  details,

@@ -20,6 +20,7 @@ type Controller struct {
 
 type UserData struct {
 	Uuid string
+	Role int64
 }
 
 func InitController() *Controller {
@@ -67,9 +68,14 @@ func failJSONWithVagueError(c *gin.Context, caller string, err error) {
 
 // must be called after 'tokenAuthCheck'
 func (ctl *Controller) getUserData(c *gin.Context) *UserData {
-	session, _ := ctl.store.Get(c.Request, "user-session")
+	session, err := ctl.store.Get(c.Request, "user-session")
+	if err != nil {
+		failJSONWithVagueError(c, "getUserData", err)
+		return &UserData{}
+	}
 	return &UserData{
 		Uuid: session.Values["uuid"].(string),
+		Role: session.Values["role"].(int64),
 	}
 }
 
