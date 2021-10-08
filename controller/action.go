@@ -170,8 +170,16 @@ func (ctl *Controller) ClosePosition(c *gin.Context) {
 		return
 	}
 
+	// Unset some params
+	params, err := ctl.unsetStopLossParamsAfterClosingPosition(cs)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
+		return
+	}
+
 	// Update DB
 	data := map[string]interface{}{
+		"params":                  params,
 		"enabled":                 0,
 		"position_status":         int64(contract.CLOSED),
 		"exchange_orders_details": datatypes.JSONMap{},
@@ -248,7 +256,7 @@ func (ctl *Controller) closeOpenPositionAndStopLossOrder(c *gin.Context, cs *db.
 			return map[string]interface{}{}, fmt.Errorf("訂單狀態未知,請到 %s APP 確認,確認後請重置狀態", cs.Exchange)
 		}
 		log.Println("[ERROR] failed to close position, err: ", err)
-		return map[string]interface{}{}, fmt.Errorf("%s server responded: '%s'", cs.Exchange, err.Error())
+		return map[string]interface{}{}, fmt.Errorf("%s server error: '%s'", cs.Exchange, err.Error())
 	}
 
 	// Check position is created
@@ -275,4 +283,28 @@ func (ctl *Controller) closeOpenPositionAndStopLossOrder(c *gin.Context, cs *db.
 	}
 
 	return orderInfo, nil
+}
+
+func (ctl *Controller) unsetStopLossParamsAfterClosingPosition(cs *db.ContractStrategy) (params datatypes.JSONMap, err error) {
+	contract, err := contract.NewContract(order.Side(cs.Side), cs.Params)
+	if err != nil {
+		return
+	}
+
+	params = datatypes.JSONMap{
+		"entry_type":  contract.EntryType,
+		"entry_order": contract.EntryOrder,
+	}
+	if contract.StopLossOrder != nil {
+		// Unset stop-loss trigger as it will ben generated after entry triggered
+		if contract.EntryType == order.ENTRY_TRENDLINE {
+			contract.StopLossOrder.(*order.StopLoss).UnsetTrigger()
+		}
+
+		params["stop_loss_order"] = contract.StopLossOrder
+	}
+	if contract.TakeProfitOrder != nil {
+		params["take_profit_order"] = contract.TakeProfitOrder
+	}
+	return
 }
