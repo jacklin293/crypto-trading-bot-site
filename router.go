@@ -17,7 +17,7 @@ func setRouter(r *gin.Engine, c *controller.Controller) {
 	r.GET("/ping", c.Ping)
 
 	// Release log
-	r.GET("/releases", c.Releases)
+	r.GET("/release_log", c.ReleaseLog)
 
 	// Admin
 	r.GET("/engine", c.Engine)
