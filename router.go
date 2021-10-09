@@ -9,6 +9,7 @@ import (
 func setRouter(r *gin.Engine, c *controller.Controller) {
 	// Static files
 	r.Static("/assets", "assets")
+	r.StaticFile("/robots.txt", "assets/robots.txt")
 
 	// Html template
 	r.LoadHTMLGlob("view/*")
