@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -63,7 +62,7 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 	// Get user data
 	css, _, err := ctl.db.GetContractStrategiesByUser(userCookie.Uuid)
 	if err != nil {
-		log.Println("strategy controller err: ", err)
+		ctl.log.Println("strategy controller err: ", err)
 		errMsg = "Internal error"
 	}
 
@@ -85,7 +84,7 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 			if ok {
 				boughtPrice, err = decimal.NewFromString(entryOrder["price"].(string))
 				if err != nil {
-					log.Println("strategy controller - failed to convert entryOrder[price], err: ", err)
+					ctl.log.Println("strategy controller - failed to convert entryOrder[price], err: ", err)
 					errMsg = "Internal error"
 					continue
 				}
@@ -96,7 +95,7 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 		if len(cs.Params) != 0 {
 			contract, err := contract.NewContract(order.Side(cs.Side), cs.Params)
 			if err != nil {
-				log.Println("strategy controller err: ", err)
+				ctl.log.Println("strategy controller err: ", err)
 				errMsg = "Internal error"
 				continue
 			}
@@ -277,12 +276,12 @@ func (ctl *Controller) CreateStrategy(c *gin.Context) {
 			return
 		}
 
-		log.Println("[ERROR] StrategyCreate db err: ", err)
+		ctl.log.Println("[ERROR] StrategyCreate db err: ", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
 		return
 	}
 	if insertId == 0 && count == 0 {
-		log.Println("[ERROR] StrategyCreate insert id or count is 0")
+		ctl.log.Println("[ERROR] StrategyCreate insert id or count is 0")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
 		return
 	}
@@ -372,7 +371,7 @@ func (ctl *Controller) DeleteStrategy(c *gin.Context) {
 	// Delete data
 	result := ctl.db.GormDB.Delete(&strategy)
 	if result.Error != nil {
-		log.Println("[ERROR] failed to delete strategy, err:", err)
+		ctl.log.Println("[ERROR] failed to delete strategy, err:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
 	}
 
@@ -388,7 +387,7 @@ func (ctl *Controller) getExchangeAccountInfo(c *gin.Context) (accountInfo map[s
 	// Get account info from exchange
 	accountInfo, err = ex.GetAccountInfo()
 	if err != nil {
-		log.Printf("failed to get account info from %s, err: %s", viper.GetString("DEFAULT_EXCHANGE"), err.Error())
+		ctl.log.Printf("failed to get account info from %s, err: %s", viper.GetString("DEFAULT_EXCHANGE"), err.Error())
 	}
 	return
 }
@@ -398,7 +397,7 @@ func (ctl *Controller) newExchange(c *gin.Context) (ex exchange.Exchanger, err e
 	userCookie := ctl.getUserData(c)
 	user, err := ctl.db.GetUserByUuid(userCookie.Uuid)
 	if err != nil {
-		log.Printf("[ERROR] failed to get user by '%s', err: %v", userCookie.Uuid, err)
+		ctl.log.Printf("[ERROR] failed to get user by '%s', err: %v", userCookie.Uuid, err)
 		err = errors.New("內部錯誤, 請重試")
 		return
 	}
@@ -411,7 +410,7 @@ func (ctl *Controller) newExchange(c *gin.Context) (ex exchange.Exchanger, err e
 	// New exchange
 	ex, err = exchange.NewExchange(viper.GetString("DEFAULT_EXCHANGE"), user.ExchangeApiKey)
 	if err != nil {
-		log.Println("[ERROR] failed to new exchange")
+		ctl.log.Println("[ERROR] failed to new exchange")
 		err = errors.New("API Key 可能已失效, 請確認或重試一次")
 		return
 	}

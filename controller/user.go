@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -51,7 +50,7 @@ func (ctl *Controller) UpdateApiKey(c *gin.Context) {
 
 	b, err := json.Marshal(details)
 	if err != nil {
-		log.Println("UpdateApiKey err:", err)
+		ctl.log.Println("UpdateApiKey err:", err)
 		ctl.redirectToLoginPage(c, "/user/apikey/new?err=internal_error")
 		return
 	}
@@ -59,13 +58,13 @@ func (ctl *Controller) UpdateApiKey(c *gin.Context) {
 	// Encrypt data using AES
 	key, err := hex.DecodeString(viper.GetString("AES_PRIVATE_KEY"))
 	if err != nil {
-		log.Println("UpdateApiKey err:", err)
+		ctl.log.Println("UpdateApiKey err:", err)
 		ctl.redirectToLoginPage(c, "/user/apikey/new?err=internal_error")
 		return
 	}
 	iv64, data64, err := aes.Encrypt([]byte(key), b)
 	if err != nil {
-		log.Println("UpdateApiKey err:", err)
+		ctl.log.Println("UpdateApiKey err:", err)
 		ctl.redirectToLoginPage(c, "/user/apikey/new?err=internal_error")
 		return
 	}
@@ -94,7 +93,7 @@ func (ctl *Controller) DeleteApiKey(c *gin.Context) {
 		"exchange_api_key": nil,
 	}
 	if _, err := ctl.db.UpdateUser(userCookie.Uuid, data); err != nil {
-		failJSONWithVagueError(c, "DeleteApiKey", err)
+		ctl.failJSONWithVagueError(c, "DeleteApiKey", err)
 		return
 	}
 

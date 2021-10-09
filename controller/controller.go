@@ -16,6 +16,7 @@ type Controller struct {
 	db     *db.DB
 	sender message.Messenger
 	store  *sessions.CookieStore
+	log    *log.Logger
 }
 
 type UserData struct {
@@ -23,11 +24,11 @@ type UserData struct {
 	Role int64
 }
 
-func InitController() *Controller {
+func InitController(l *log.Logger) *Controller {
 	// Connect to DB
 	db, err := db.NewDB(viper.GetString("DB_DSN"))
 	if err != nil {
-		log.Fatal(err)
+		l.Fatal(err)
 	}
 
 	// Sender
@@ -36,16 +37,16 @@ func InitController() *Controller {
 	}
 	sender, err := message.NewSender(viper.GetString("DEFAULT_SENDER_PLATFORM"), data)
 	if err != nil {
-		log.Fatal(err)
+		l.Fatal(err)
 	}
 
 	authKey, err := hex.DecodeString(viper.GetString("SESSION_AUTHENTICATION_KEY"))
 	if err != nil {
-		log.Fatal(err)
+		l.Fatal(err)
 	}
 	encryptKey, err := hex.DecodeString(viper.GetString("SESSION_ENCRYPTION_KEY"))
 	if err != nil {
-		log.Fatal(err)
+		l.Fatal(err)
 	}
 
 	// Session store
@@ -55,12 +56,13 @@ func InitController() *Controller {
 		db:     db,
 		sender: sender,
 		store:  store,
+		log:    l,
 	}
 }
 
 // NOTE intentionally provide vague for security purpose
-func failJSONWithVagueError(c *gin.Context, caller string, err error) {
-	log.Printf("[ERROR] %s err: %s", caller, err.Error())
+func (ctl *Controller) failJSONWithVagueError(c *gin.Context, caller string, err error) {
+	ctl.log.Printf("[ERROR] %s err: %s", caller, err.Error())
 	c.JSON(http.StatusBadRequest, gin.H{
 		"error": "Internal error",
 	})
@@ -70,7 +72,7 @@ func failJSONWithVagueError(c *gin.Context, caller string, err error) {
 func (ctl *Controller) getUserData(c *gin.Context) *UserData {
 	session, err := ctl.store.Get(c.Request, "user-session")
 	if err != nil {
-		failJSONWithVagueError(c, "getUserData", err)
+		ctl.failJSONWithVagueError(c, "getUserData", err)
 		return &UserData{}
 	}
 	return &UserData{
@@ -82,12 +84,11 @@ func (ctl *Controller) getUserData(c *gin.Context) *UserData {
 func (ctl *Controller) clearSession(c *gin.Context) {
 	session, err := ctl.store.Get(c.Request, "user-session")
 	if err != nil {
-		log.Println("clearSession err:", err)
+		ctl.log.Println("clearSession err:", err)
 	}
 	session.Options.MaxAge = -1
-	err = session.Save(c.Request, c.Writer)
-	if err != nil {
-		log.Println("clearSession err:", err)
+	if err = session.Save(c.Request, c.Writer); err != nil {
+		ctl.log.Println("clearSession err:", err)
 	}
 }
 

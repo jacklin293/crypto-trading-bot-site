@@ -1,35 +1,37 @@
 # ENV
-ENV:
+ENV: e.g. prod
+LOG_PATH: e.g. logs/api.log
+GIN_LOG_PATH: e.g. logs/gin.log
 
 # DB
-DB_DSN:
+DB_DSN: e.g. root:root@tcp(127.0.0.1:3306)/crypto?charset=utf8mb4&parseTime=true
 
 # Http
-HTTP_PORT:
+HTTP_PORT: e.g. 52100
 
 # Notification
-DEFAULT_SENDER_PLATFORM:
-TELEGRAM_TOKEN:
+DEFAULT_SENDER_PLATFORM: e.g. telegram
+TELEGRAM_TOKEN: e.g. e.g. telegram bot token
 
 # For maintenance
-ADMIN_CHAT_ID:
+ADMIN_CHAT_ID: e.g. telegram chat_id
 
 # Exchange
-DEFAULT_EXCHANGE:
+DEFAULT_EXCHANGE: e.g. FTX
 
 # Recaptcha v3
 RECAPTCHA_SITE_KEY:
 RECAPTCHA_SECRET:
 
 # Cookie
-SESSION_AUTHENTICATION_KEY:
-SESSION_ENCRYPTION_KEY:
+SESSION_AUTHENTICATION_KEY: e.g. c33a9bbad0a09866a7b7a9fea3e05a84ae0451034ef1f737aaf3c981ede8f5ac (32 bytes encoded by Hex)
+SESSION_ENCRYPTION_KEY: e.g. c33a9bbad0a09866a7b7a9fea3e05a84ae0451034ef1f737aaf3c981ede8f5ac (32 bytes encoded by Hex)
 
 # For OTP, password
-SHA256_HASH_SALT:
+SHA256_HASH_SALT: e.g. c33a9bbad0a09866a7b7a9fea3e05a84ae0451034ef1f737aaf3c981ede8f5ac (32 bytes encoded by Hex)
 
 # For all purpose
-AES_PRIVATE_KEY:
+AES_PRIVATE_KEY: e.g. c33a9bbad0a09866a7b7a9fea3e05a84ae0451034ef1f737aaf3c981ede8f5ac (32 bytes encoded by Hex)
 
 # Engine
-ENGINE_URL:
+ENGINE_URL: e.g. http://127.0.0.1:52000

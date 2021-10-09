@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"reflect"
 	"time"
@@ -61,18 +60,18 @@ func (ctl *Controller) LoginAPI(c *gin.Context) {
 
 	var u UserLogin
 	if err := c.ShouldBind(&u); err != nil {
-		log.Println("LoginAPI err: ", err)
+		ctl.log.Println("LoginAPI err: ", err)
 		ctl.redirectToLoginPage(c, "/login?err=login_failed")
 		return
 	}
 	valid, err := ctl.checkRecaptcha(u.RecaptchaResponse)
 	if err != nil {
-		log.Println("LoginAPI err: ", err)
+		ctl.log.Println("LoginAPI err: ", err)
 		ctl.redirectToLoginPage(c, "/login?err=login_failed")
 		return
 	}
 	if !valid {
-		log.Println("LoginAPI err: invalid")
+		ctl.log.Println("LoginAPI err: invalid")
 		ctl.redirectToLoginPage(c, "/login?err=login_failed")
 		return
 	}
@@ -80,7 +79,7 @@ func (ctl *Controller) LoginAPI(c *gin.Context) {
 	// Hash password with sha256
 	pwdHash, err := ctl.hashPassword(u.Password)
 	if err != nil {
-		log.Println("LoginAPI err: ", err)
+		ctl.log.Println("LoginAPI err: ", err)
 		ctl.redirectToLoginPage(c, "/login?err=login_failed")
 		return
 	}
@@ -88,7 +87,7 @@ func (ctl *Controller) LoginAPI(c *gin.Context) {
 	// Get user by username namd password
 	user, err := ctl.db.GetUserByUsernameByPassword(u.Username, pwdHash)
 	if err != nil {
-		log.Println("LoginAPI err: ", err)
+		ctl.log.Println("LoginAPI err: ", err)
 		ctl.redirectToLoginPage(c, "/login?err=login_failed")
 		return
 	}
@@ -98,7 +97,7 @@ func (ctl *Controller) LoginAPI(c *gin.Context) {
 		"last_login_at": time.Now(),
 	}
 	if _, err = ctl.db.UpdateUser(user.Uuid, data); err != nil {
-		log.Println("LoginAPI err: ", err)
+		ctl.log.Println("LoginAPI err: ", err)
 		ctl.redirectToLoginPage(c, "/login?err=login_failed")
 		return
 	}
@@ -106,7 +105,7 @@ func (ctl *Controller) LoginAPI(c *gin.Context) {
 	// Get session
 	session, err := ctl.store.Get(c.Request, "user-session")
 	if err != nil {
-		log.Println("LoginAPI err: ", err)
+		ctl.log.Println("LoginAPI err: ", err)
 		ctl.clearSession(c)
 		ctl.redirectToLoginPage(c, "/login?err=login_failed")
 		return
@@ -117,7 +116,7 @@ func (ctl *Controller) LoginAPI(c *gin.Context) {
 	prefixKey := ctl.getSignaturePrefixKey(user.Uuid, user.Role, expiryTs)
 	hash, err := ctl.getSignatureHash(prefixKey)
 	if err != nil {
-		log.Println("LoginAPI err: ", err)
+		ctl.log.Println("LoginAPI err: ", err)
 		ctl.redirectToLoginPage(c, "/login?err=login_failed")
 		return
 	}
@@ -132,7 +131,7 @@ func (ctl *Controller) LoginAPI(c *gin.Context) {
 	}
 	err = session.Save(c.Request, c.Writer)
 	if err != nil {
-		log.Println("LoginAPI err: ", err)
+		ctl.log.Println("LoginAPI err: ", err)
 		ctl.redirectToLoginPage(c, "/login?err=login_failed")
 		return
 	}
@@ -146,30 +145,30 @@ func (ctl *Controller) OTP(c *gin.Context) {
 
 	var u UserOTP
 	if err := c.ShouldBind(&u); err != nil {
-		failJSONWithVagueError(c, "OTP", err)
+		ctl.failJSONWithVagueError(c, "OTP", err)
 		return
 	}
 	valid, err := ctl.checkRecaptcha(u.RecaptchaResponse)
 	if err != nil {
-		failJSONWithVagueError(c, "OTP", err)
+		ctl.failJSONWithVagueError(c, "OTP", err)
 		return
 	}
 	if !valid {
-		failJSONWithVagueError(c, "OTP", errors.New("failed to pass recaptcha"))
+		ctl.failJSONWithVagueError(c, "OTP", errors.New("failed to pass recaptcha"))
 		return
 	}
 
 	// Get user
 	user, err := ctl.db.GetUserByUsername(u.Username)
 	if err != nil {
-		failJSONWithVagueError(c, "OTP", err)
+		ctl.failJSONWithVagueError(c, "OTP", err)
 		return
 	}
 
 	// Generate one-time password, length 23 that contains 4 digits and 4 symbols
 	otp, err := password.Generate(18, 3, 3, false, false)
 	if err != nil {
-		failJSONWithVagueError(c, "123 OTP", err)
+		ctl.failJSONWithVagueError(c, "123 OTP", err)
 		return
 	}
 
@@ -180,7 +179,7 @@ func (ctl *Controller) OTP(c *gin.Context) {
 	// Hash password with sha256
 	otpHash, err := ctl.hashPassword(otp)
 	if err != nil {
-		failJSONWithVagueError(c, "456 OTP", err)
+		ctl.failJSONWithVagueError(c, "456 OTP", err)
 		return
 	}
 
@@ -190,7 +189,7 @@ func (ctl *Controller) OTP(c *gin.Context) {
 		"password_expired_at": time.Now().Add(time.Second * time.Duration(OTP_EXPIRY_SECOND)),
 	}
 	if _, err = ctl.db.UpdateUser(user.Uuid, data); err != nil {
-		failJSONWithVagueError(c, "LoginPOST", err)
+		ctl.failJSONWithVagueError(c, "LoginPOST", err)
 		return
 	}
 
@@ -231,7 +230,7 @@ func (ctl *Controller) checkRecaptcha(response string) (bool, error) {
 func (ctl *Controller) tokenAuthCheck(c *gin.Context) bool {
 	session, err := ctl.store.Get(c.Request, "user-session")
 	if err != nil {
-		log.Println("tokenAuthCheck err:", err)
+		ctl.log.Println("tokenAuthCheck err:", err)
 		ctl.redirectToLoginPage(c, "/login?err=internal_error")
 		return false
 	}
