@@ -76,9 +76,8 @@ func (ctl *Controller) DisableStrategy(c *gin.Context) {
 	path := fmt.Sprintf("/event?action=disable&uuid=%s", uuid)
 	_, err = ctl.makeRequestToEngine(path)
 	if err != nil {
+		// NOTE Allow strategy to be disabled while engine server is down
 		log.Println("failed to call engine, err:", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
-		return
 	}
 
 	// Update DB
