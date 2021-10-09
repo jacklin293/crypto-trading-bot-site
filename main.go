@@ -30,7 +30,13 @@ func main() {
 	r := gin.Default()
 	controller := controller.InitController(l)
 	setRouter(r, controller)
-	r.Run(fmt.Sprintf(":%s", viper.GetString("HTTP_PORT")))
+
+	if viper.GetString("ENV") == "prod" {
+		r.RunTLS(fmt.Sprintf(":%s", viper.GetString("HTTP_PORT")), viper.GetString("CERT_PEM_PATH"), viper.GetString("CERT_KEY_PATH"))
+	} else {
+		r.Run(fmt.Sprintf(":%s", viper.GetString("HTTP_PORT")))
+	}
+
 }
 
 func loadConfig() {

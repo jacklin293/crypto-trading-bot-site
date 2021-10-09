@@ -8,6 +8,8 @@ DB_DSN: e.g. root:root@tcp(127.0.0.1:3306)/crypto?charset=utf8mb4&parseTime=true
 
 # Http
 HTTP_PORT: e.g. 52100
+CERT_PEM_PATH:
+CERT_KEY_PATH:
 
 # Notification
 DEFAULT_SENDER_PLATFORM: e.g. telegram
