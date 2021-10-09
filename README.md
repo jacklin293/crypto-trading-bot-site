@@ -10,11 +10,5 @@ Run this command
 docker-compose up -d
 ```
 
-# deploy
-
-Run
-
-    make deploy
-    scp .config.yml.template fomobot:~/app/api/config.yml
 
 
