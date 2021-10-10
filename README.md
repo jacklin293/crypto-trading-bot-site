@@ -9,6 +9,6 @@ Run this command
 ```
 docker-compose up -d
 ```
+# Deploy
 
-
-
+    make deploy
