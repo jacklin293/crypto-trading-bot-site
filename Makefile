@@ -6,3 +6,4 @@ deploy:
 	rsync -avr --delete -e ssh view fomobot:/home/fomobot/app/fomobot-api/
 	rsync -avr --delete -e ssh assets fomobot:/home/fomobot/app/fomobot-api/
 	rm prod-api
+	ssh -t fomobot "sudo systemctl restart fomobot-api"
