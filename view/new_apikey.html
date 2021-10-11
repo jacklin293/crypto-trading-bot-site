@@ -45,7 +45,9 @@
                             <span class="visually-hidden">Loading...</span>
                         </div>
                         <button type="submit" id="submit-button" class="btn btn-primary action-button">送出</button>
+                        {{ if .apiKeyExists }}
                         <input type="button" id="test-button" class="btn btn-primary action-button" value="測試"/>
+                        {{ end }}
                         <input type="button" id="delete-button" class="btn btn-primary action-button" value="刪除"/>
                     </div>
                 </div>

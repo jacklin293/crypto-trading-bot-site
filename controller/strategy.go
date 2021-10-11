@@ -297,12 +297,27 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 
 	userCookie := ctl.getUserData(c)
 	uuid := c.Param("uuid")
+	errMsg := ""
+
+	// For money and currency formatting
+	ac := accounting.Accounting{Symbol: "$", Precision: 8}
+
+	// Get exchange account info
+	accountInfo, err := ctl.getExchangeAccountInfo(c)
+	if err != nil {
+		errMsg = fmt.Sprintf("%s API server 無回應或 API Key 已失效", viper.GetString("DEFAULT_EXCHANGE"))
+	}
 
 	// Check permission
 	strategy, err := ctl.db.GetContractStrategyByUuidByUser(uuid, userCookie.Uuid)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Permission denied"})
 		return
+	}
+
+	leverage := ""
+	if len(accountInfo) > 0 {
+		leverage = strategy.Margin.Div(accountInfo["collateral"].(decimal.Decimal)).StringFixed(1)
 	}
 
 	params, err := json.Marshal(strategy.Params)
@@ -313,7 +328,7 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 	params = bytes.Replace(params, []byte("\\u003c"), []byte("<"), -1)
 	params = bytes.Replace(params, []byte("\\u003e"), []byte(">"), -1)
 
-	details := "(無)"
+	ordersDetails := "(無)"
 	if len(strategy.ExchangeOrdersDetails) > 0 {
 		b, err := json.Marshal(strategy.ExchangeOrdersDetails)
 		if err != nil {
@@ -322,20 +337,29 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 		}
 		b = bytes.Replace(b, []byte("\\u003c"), []byte("<"), -1)
 		b = bytes.Replace(b, []byte("\\u003e"), []byte(">"), -1)
-		details = string(b)
+		ordersDetails = string(b)
 	}
 
-	lastPositionAt := strategy.LastPositionAt.Format("2006-01-02 15:04:05")
-	if strategy.LastPositionAt.Unix() < 0 {
-		lastPositionAt = "尚未開倉"
+	lastPositionAt := "(未開倉)"
+	if strategy.LastPositionAt.Unix() > 0 {
+		lastPositionAt = strategy.LastPositionAt.Format("2006-01-02 15:04:05")
+	}
+
+	comment := "(未填)"
+	if strategy.Comment != "" {
+		comment = strategy.Comment
 	}
 
 	c.HTML(http.StatusOK, "show_strategy.html", gin.H{
+		"error":          errMsg,
 		"loggedIn":       true,
 		"role":           userCookie.Role,
 		"strategy":       strategy,
+		"margin":         ac.FormatMoneyDecimal(strategy.Margin),
+		"leverage":       leverage,
 		"params":         string(params),
-		"ordersDetails":  details,
+		"comment":        comment,
+		"ordersDetails":  ordersDetails,
 		"lastPositionAt": lastPositionAt,
 		"createdAt":      strategy.CreatedAt.Format("2006-01-02 15:04:05"),
 		"updatedAt":      strategy.UpdatedAt.Format("2006-01-02 15:04:05"),
@@ -398,7 +422,7 @@ func (ctl *Controller) newExchange(c *gin.Context) (ex exchange.Exchanger, err e
 	user, err := ctl.db.GetUserByUuid(userCookie.Uuid)
 	if err != nil {
 		ctl.log.Printf("[ERROR] failed to get user by '%s', err: %v", userCookie.Uuid, err)
-		err = errors.New("內部錯誤, 請重試")
+		err = errors.New("用戶不存在")
 		return
 	}
 

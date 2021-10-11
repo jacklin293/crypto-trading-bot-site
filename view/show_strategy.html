@@ -1,5 +1,14 @@
 {{ template "header.html" .}}
 <div class="container">
+    {{ if ne .error "" }}
+    <div class="row rounded mb-3">
+        <div class="col">
+            <div class="alert alert-danger" role="alert">
+                {{ .error }}
+            </div>
+        </div>
+    </div>
+    {{ end }}
     <div class="row rounded mb-3">
         <div class="col">
             <div class="row">
@@ -18,23 +27,43 @@
                 <div class="col-3 text-end">方向</div>
                 <div class="col-9">
                     {{if eq .strategy.Side 1}}
-                        多
+                    <span class="badge bg-success">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="bi bi-graph-up" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5z"/>
+                        </svg>
+                        <!-- leverage -->
+                        {{ if ne .leverage "" }}
+                        <span class="align-middle">{{$.leverage}}x</span>
+                        {{ end }}
+                    </span>
                     {{else if eq .strategy.Side 0 }}
-                        空
+                    <span class="badge bg-danger">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="bi bi-graph-down" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0zm10 11.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-1 0v2.6l-3.613-4.417a.5.5 0 0 0-.74-.037L7.06 8.233 3.404 3.206a.5.5 0 0 0-.808.588l4 5.5a.5.5 0 0 0 .758.06l2.609-2.61L13.445 11H10.5a.5.5 0 0 0-.5.5z"/>
+                        </svg>
+                        <!-- leverage -->
+                        {{ if ne .leverage "" }}
+                        <span class="align-middle">{{$.leverage}}x</span>
+                        {{ end }}
+                    </span>
                     {{end}}
                 </div>
             </div>
             <div class="row">
                 <div class="col-3 text-end">保證金</div>
-                <div class="col-9">${{.strategy.Margin}}</div>
+                <div class="col-9">{{printf "%.10s" .margin}}</div>
             </div>
             <div class="row">
                 <div class="col-3 text-end">開啟狀態</div>
                 <div class="col-9">
                     {{if eq .strategy.Enabled 1}}
-                        已開啟
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-toggle-on text-primary" viewBox="0 0 16 16">
+                            <path d="M5 3a5 5 0 0 0 0 10h6a5 5 0 0 0 0-10H5zm6 9a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/>
+                        </svg>
                     {{else if eq .strategy.Enabled 0 }}
-                        已關閉
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-toggle-off text-secondary" viewBox="0 0 16 16">
+                            <path d="M11 4a4 4 0 0 1 0 8H8a4.992 4.992 0 0 0 2-4 4.992 4.992 0 0 0-2-4h3zm-6 8a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM0 8a5 5 0 0 0 5 5h6a5 5 0 0 0 0-10H5a5 5 0 0 0-5 5z"/>
+                        </svg>
                     {{end}}
                 </div>
             </div>
@@ -51,7 +80,7 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col-3 text-end">上次開倉</div>
+                <div class="col-3 text-end">開倉時間</div>
                 <div class="col-9">{{.lastPositionAt}}</div>
             </div>
             <div class="row">
@@ -63,10 +92,10 @@
                 <div class="col-9">{{.updatedAt}}</div>
             </div>
             <div class="row">
-                <div class="col-3 text-end">註解</div>
+                <div class="col-3 text-end">備註</div>
                 <div class="col-9">
                     <div class="mb-3">
-                        <textarea class="form-control" rows="2" readonly>{{.strategy.Comment}}</textarea>
+                        <textarea class="form-control" rows="2" readonly>{{.comment}}</textarea>
                     </div>
                 </div>
             </div>
@@ -74,7 +103,7 @@
                 <div class="col-3 text-end">策略參數</div>
                 <div class="col-9">
                     <div class="mb-3">
-                        <textarea class="form-control" rows="3" readonly>{{.params}}</textarea>
+                        <div class="form-control" id="contract-params" readonly>{{.params}}</div>
                     </div>
                 </div>
             </div>
@@ -82,7 +111,7 @@
                 <div class="col-3 text-end">訂單細節</div>
                 <div class="col-9">
                     <div class="mb-3">
-                        <textarea class="form-control" rows="3" readonly>{{.ordersDetails}}</textarea>
+                        <div class="form-control" id="orders-details" readonly>{{.ordersDetails}}</div>
                     </div>
                 </div>
             </div>
@@ -90,3 +119,11 @@
     </div>
 </div>
 {{ template "footer.html" .}}
+<script>
+$( document ).ready(function() {
+    var params = JSON.parse(unescape($('#contract-params').text()));
+    $('#contract-params').html("<pre>" + JSON.stringify(params, null, 4) + "</pre>");
+    var orders = JSON.parse(unescape($('#orders-details').text()));
+    $('#orders-details').html("<pre>" + JSON.stringify(orders, null, 4) + "</pre>");
+});
+</script>

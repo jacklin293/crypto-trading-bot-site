@@ -18,11 +18,23 @@ func (ctl *Controller) NewApiKey(c *gin.Context) {
 	success := c.Query("success")
 	errMsg := c.Query("err")
 
+	userCookie := ctl.getUserData(c)
+	user, err := ctl.db.GetUserByUuid(userCookie.Uuid)
+	if err != nil {
+		ctl.log.Printf("[ERROR] failed to get user by '%s', err: %v", userCookie.Uuid, err)
+		errMsg = "用戶不存在"
+	}
+	apiKeyExists := false
+	if user.ExchangeApiKey != "" {
+		apiKeyExists = true
+	}
+
 	c.HTML(http.StatusOK, "new_apikey.html", gin.H{
-		"loggedIn": true,
-		"role":     ctl.getUserData(c).Role,
-		"success":  success,
-		"errMsg":   errMsg,
+		"loggedIn":     true,
+		"role":         userCookie.Role,
+		"success":      success,
+		"errMsg":       errMsg,
+		"apiKeyExists": apiKeyExists,
 	})
 }
 
