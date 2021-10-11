@@ -35,11 +35,16 @@
                     <span class="align-middle">List</span>
                 </div>
                 <div class="col-10">
-                    <textarea class="form-control" rows="10" readonly>{{.list}}</textarea>
+                    <div class="form-control" id="list" readonly>{{.list}}</div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 {{ template "footer.html" .}}
-
+<script>
+$( document ).ready(function() {
+    var list = JSON.parse(unescape($('#list').text()));
+    $('#list').html("<pre>" + JSON.stringify(list, null, 4) + "</pre>");
+});
+</script>

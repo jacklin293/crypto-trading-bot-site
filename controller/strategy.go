@@ -328,7 +328,7 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 	params = bytes.Replace(params, []byte("\\u003c"), []byte("<"), -1)
 	params = bytes.Replace(params, []byte("\\u003e"), []byte(">"), -1)
 
-	ordersDetails := "(無)"
+	ordersDetails := ""
 	if len(strategy.ExchangeOrdersDetails) > 0 {
 		b, err := json.Marshal(strategy.ExchangeOrdersDetails)
 		if err != nil {
