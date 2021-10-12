@@ -125,7 +125,7 @@ function initActions() {
             url: '/action/close_position/' + uuid,
             data: {},
             success: function(data) {
-                msg = "已成功平倉 @" + data.price + " (fee:" + formatter.format(data.fee) + "),5秒後自動重整頁面";
+                msg = "已成功平倉 @" + data.price + " ,5秒後自動重整頁面";
                 $('#success-modal-body').text(msg);
                 successModal.show();
                 setTimeout(function(){

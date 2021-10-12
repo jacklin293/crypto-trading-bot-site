@@ -194,7 +194,6 @@ func (ctl *Controller) ClosePosition(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"price": orderInfo["price"].(string),
-		"fee":   fmt.Sprintf("%.1f", orderInfo["fee"].(float64)),
 	})
 }
 
