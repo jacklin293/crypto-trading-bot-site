@@ -258,7 +258,7 @@ func (ctl *Controller) closeOpenPositionAndStopLossOrder(c *gin.Context, cs *db.
 	if err != nil {
 		if strings.Contains(err.Error(), "Invalid reduce-only order") {
 			ctl.log.Println("[ERROR] order could be closed by FTX already, err: ", err)
-			return map[string]interface{}{}, fmt.Errorf("訂單狀態未知,請到 %s APP 確認,確認後請重置狀態", cs.Exchange)
+			return map[string]interface{}{}, fmt.Errorf("請重試或到 %s APP 操作並重置狀態", cs.Exchange)
 		}
 		ctl.log.Println("[ERROR] failed to close position, err: ", err)
 		return map[string]interface{}{}, fmt.Errorf("%s server error: '%s'", cs.Exchange, err.Error())

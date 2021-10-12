@@ -38,7 +38,7 @@ function initActions() {
             url: '/action/disable_strategy/' + uuid,
             data: {},
             success: function() {
-                $('#success-modal-body').text("暫停中,請留意通知,2秒後自動重整頁面");
+                $('#success-modal-body').text("關閉中,請留意通知,2秒後自動重整頁面");
                 successModal.show();
                 setTimeout(function(){
                     window.location.reload(1);
