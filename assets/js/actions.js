@@ -15,7 +15,7 @@ function initActions() {
             url: '/action/enable_strategy/' + uuid,
             data: {},
             success: function() {
-                $('#success-modal-body').text("啟動中,請留意通知,2秒後自動重整頁面");
+                $('#success-modal-body').text("啟動中, 請留意通知, 2秒後自動重整頁面");
                 successModal.show();
                 setTimeout(function(){
                     window.location.reload(1);
@@ -38,7 +38,7 @@ function initActions() {
             url: '/action/disable_strategy/' + uuid,
             data: {},
             success: function() {
-                $('#success-modal-body').text("關閉中,請留意通知,2秒後自動重整頁面");
+                $('#success-modal-body').text("關閉中, 請留意通知, 2秒後自動重整頁面");
                 successModal.show();
                 setTimeout(function(){
                     window.location.reload(1);
@@ -67,7 +67,7 @@ function initActions() {
             url: '/action/reset_strategy/' + uuid,
             data: {},
             success: function() {
-                $('#success-modal-body').text("已成功重置狀態,2秒後自動重整頁面");
+                $('#success-modal-body').text("已成功重置狀態, 2秒後自動重整頁面");
                 successModal.show();
                 setTimeout(function(){
                     window.location.reload(1);
@@ -96,7 +96,7 @@ function initActions() {
             url: '/strategy/' + uuid,
             data: {},
             success: function() {
-                $('#success-modal-body').text("已成功刪除,2秒後自動重整頁面");
+                $('#success-modal-body').text("已成功刪除, 2秒後自動重整頁面");
                 successModal.show();
                 setTimeout(function(){
                     window.location.reload(1);
@@ -125,7 +125,7 @@ function initActions() {
             url: '/action/close_position/' + uuid,
             data: {},
             success: function(data) {
-                msg = "已成功平倉 @" + data.price + " ,5秒後自動重整頁面";
+                msg = "已成功平倉, 5秒後自動重整頁面";
                 $('#success-modal-body').text(msg);
                 successModal.show();
                 setTimeout(function(){

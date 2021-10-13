@@ -267,9 +267,9 @@
                                     <small class="fw-lighter text-muted align-middle">開</small>
                                     <span class="text-black text-opacity-75 d-inline-block align-middle text-truncate" style="width: 90px;">
                                         {{ if eq $s.PositionStatus 1 }}
-                                            {{printf "%.10s" $s.BoughtPrice}}
-                                        {{ else }}
                                             {{printf "%.10s" $s.EntryPrice}}
+                                        {{ else }}
+                                            {{printf "%.10s" $s.BuyPrice}}
                                         {{ end }}
                                     </span>
                                 </span>

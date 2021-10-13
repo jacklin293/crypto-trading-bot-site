@@ -34,8 +34,8 @@ type StrategyTmpl struct {
 	Leverage       string
 	Enabled        int64
 	PositionStatus int64
-	EntryPrice     string
-	BoughtPrice    string
+	BuyPrice       string // to buy
+	EntryPrice     string // bought
 	TakeProfit     string
 	StopLoss       string
 	Comment        string
@@ -78,11 +78,17 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 		symbol := strings.Split(cs.Symbol, "-")
 
 		// (position status: 1) Get entry price if position has been opened
-		var boughtPrice decimal.Decimal
+		var entryPrice decimal.Decimal
 		if len(cs.ExchangeOrdersDetails) != 0 {
 			entryOrder, ok := cs.ExchangeOrdersDetails["entry_order"].(map[string]interface{})
 			if ok {
-				boughtPrice, err = decimal.NewFromString(entryOrder["price"].(string))
+				tmpPrice, ok := entryOrder["entry_price"].(string)
+				if !ok {
+					ctl.log.Println("strategy controller - failed to get entryOrder[entry_price], err: ", err)
+					errMsg = "Internal error"
+					continue
+				}
+				entryPrice, err = decimal.NewFromString(tmpPrice)
 				if err != nil {
 					ctl.log.Println("strategy controller - failed to convert entryOrder[price], err: ", err)
 					errMsg = "Internal error"
@@ -100,7 +106,7 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 				continue
 			}
 			// This doesn't matter for position
-			st.EntryPrice = ac.FormatMoneyDecimal(contract.EntryOrder.GetTrigger().GetPrice(time.Now()))
+			st.BuyPrice = ac.FormatMoneyDecimal(contract.EntryOrder.GetTrigger().GetPrice(time.Now()))
 
 			if contract.StopLossOrder != nil {
 				// If entry_type is trendline, stop-loss trigger will be filled after entry order triggered
@@ -127,7 +133,7 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 		st.Side = cs.Side
 		st.Enabled = cs.Enabled
 		st.PositionStatus = cs.PositionStatus
-		st.BoughtPrice = ac.FormatMoneyDecimal(boughtPrice)
+		st.EntryPrice = ac.FormatMoneyDecimal(entryPrice)
 		st.Comment = cs.Comment
 		strategyTmpls = append(strategyTmpls, st)
 

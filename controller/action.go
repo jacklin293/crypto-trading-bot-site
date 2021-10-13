@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -167,8 +166,7 @@ func (ctl *Controller) ClosePosition(c *gin.Context) {
 	}
 
 	// Close position and stop-loss order
-	orderInfo, err := ctl.closeOpenPositionAndStopLossOrder(c, cs)
-	if err != nil {
+	if err := ctl.closePosition(c, cs); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -192,9 +190,7 @@ func (ctl *Controller) ClosePosition(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"price": orderInfo["price"].(string),
-	})
+	c.JSON(http.StatusOK, gin.H{})
 }
 
 func (ctl *Controller) makeRequestToEngine(path string) ([]byte, error) {
@@ -241,38 +237,31 @@ func (ctl *Controller) notBeingTrackedByEngine(c *gin.Context, uuid string) erro
 	return nil
 }
 
-func (ctl *Controller) closeOpenPositionAndStopLossOrder(c *gin.Context, cs *db.ContractStrategy) (map[string]interface{}, error) {
-	size, err := decimal.NewFromString(cs.ExchangeOrdersDetails["entry_order"].(map[string]interface{})["size"].(string))
-	if err != nil {
-		ctl.log.Println("[ERROR] failed to get entry_order.size, err:", err)
-		return map[string]interface{}{}, errors.New("內部錯誤, 請重置狀態")
-	}
-
+func (ctl *Controller) closePosition(c *gin.Context, cs *db.ContractStrategy) error {
 	ex, err := ctl.newExchange(c)
 	if err != nil {
-		return map[string]interface{}{}, err
+		return err
+	}
+
+	positionInfo, err := ex.RetryGetPosition(cs.Symbol, 30, 2)
+	if err != nil {
+		ctl.log.Println("[ERROR] failed to get position, err:", err)
+		return fmt.Errorf("%s server error: '%s'", cs.Exchange, err.Error())
 	}
 
 	// Place order
-	orderId, err := ex.RetryClosePosition(cs.Symbol, order.Side(cs.Side), size, 30, 2)
+	// If size is zero, it means that it might be closed already
+	if positionInfo["size"].(string) == "0" {
+		return fmt.Errorf("無法平倉, 請到 %s APP 確認並重置狀態", cs.Exchange)
+	}
+	size, err := decimal.NewFromString(positionInfo["size"].(string))
 	if err != nil {
-		if strings.Contains(err.Error(), "Invalid reduce-only order") {
-			ctl.log.Println("[ERROR] order could be closed by FTX already, err: ", err)
-			return map[string]interface{}{}, fmt.Errorf("請重試或到 %s APP 操作並重置狀態", cs.Exchange)
-		}
-		ctl.log.Println("[ERROR] failed to close position, err: ", err)
-		return map[string]interface{}{}, fmt.Errorf("%s server error: '%s'", cs.Exchange, err.Error())
+		return fmt.Errorf("請重試或到 %s APP 操作並重置狀態", cs.Exchange)
 	}
 
-	// Check position is created
-	orderInfo, count, err := ex.RetryGetPosition(orderId, 30, 2)
-	if err != nil {
-		ctl.log.Println("[ERROR] failed to get position, err: ", err)
-		return map[string]interface{}{}, fmt.Errorf("%s server error: '%s'", cs.Exchange, err.Error())
-	}
-	if count == 0 {
-		ctl.log.Println("[ERROR] no position was found")
-		return map[string]interface{}{}, errors.New("未知錯誤,請確認訂單是否正確關閉,並且重置狀態")
+	if err = ex.RetryClosePosition(cs.Symbol, order.Side(cs.Side), size, 30, 2); err != nil {
+		ctl.log.Println("[ERROR] failed to close position, err: ", err)
+		return fmt.Errorf("%s server error: '%s', 請重試或到 %s APP 操作並重置狀態", cs.Exchange, err.Error(), cs.Exchange)
 	}
 
 	// Close stop-loss order
@@ -283,11 +272,11 @@ func (ctl *Controller) closeOpenPositionAndStopLossOrder(c *gin.Context, cs *db.
 		err = ex.RetryCancelOpenTriggerOrder(stopLossOrderId, 20, 2)
 		if err != nil {
 			ctl.log.Println("[ERROR] failed to cancel stop-loss order, err: ", err)
-			return map[string]interface{}{}, fmt.Errorf("無法取消停損訂單, %s server error: '%s'", cs.Exchange, err.Error())
+			return fmt.Errorf("無法取消停損訂單, %s server error: '%s'", cs.Exchange, err.Error())
 		}
 	}
 
-	return orderInfo, nil
+	return nil
 }
 
 func (ctl *Controller) unsetStopLossParamsAfterClosingPosition(cs *db.ContractStrategy) (params datatypes.JSONMap, err error) {
