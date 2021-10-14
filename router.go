@@ -40,6 +40,10 @@ func setRouter(r *gin.Engine, c *controller.Controller) {
 	r.POST("/strategy", c.CreateStrategy)
 	r.GET("/strategy/:uuid", c.ShowStrategy)
 	r.DELETE("/strategy/:uuid", c.DeleteStrategy)
+	r.GET("/strategy/:uuid/edit", c.EditStrategy)
+	r.PATCH("/strategy/:uuid", c.UpdateStrategy)
+	r.GET("/strategy/:uuid/tpsl/edit", c.EditTpSl)
+	r.PATCH("/strategy/:uuid/tpsl", c.UpdateTpSl)
 
 	// Action
 	r.GET("/action/enable_strategy/:uuid", c.EnableStrategy)

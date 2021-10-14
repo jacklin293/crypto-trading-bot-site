@@ -82,7 +82,7 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 		if len(cs.ExchangeOrdersDetails) != 0 {
 			entryOrder, ok := cs.ExchangeOrdersDetails["entry_order"].(map[string]interface{})
 			if ok {
-				tmpPrice, ok := entryOrder["entry_price"].(string)
+				tmpPrice, ok := entryOrder["price"].(string)
 				if !ok {
 					ctl.log.Println("strategy controller - failed to get entryOrder[entry_price], err: ", err)
 					errMsg = "Internal error"
@@ -405,6 +405,28 @@ func (ctl *Controller) DeleteStrategy(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
 	}
 
+	c.JSON(http.StatusOK, gin.H{})
+}
+
+func (ctl *Controller) EditStrategy(c *gin.Context) {
+	var errMsg string
+	c.HTML(http.StatusOK, "edit_strategy.html", gin.H{
+		"error": errMsg,
+	})
+}
+
+func (ctl *Controller) UpdateStrategy(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{})
+}
+
+func (ctl *Controller) EditTpSl(c *gin.Context) {
+	var errMsg string
+	c.HTML(http.StatusOK, "edit_strategy_tpsl.html", gin.H{
+		"error": errMsg,
+	})
+}
+
+func (ctl *Controller) UpdateTpSl(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 }
 
