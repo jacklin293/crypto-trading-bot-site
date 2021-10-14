@@ -195,7 +195,7 @@
                                 {{ end }}
 
                                 <!-- update TP/SL -->
-                                {{if eq $s.PositionStatus 0 }}
+                                {{if ne $s.PositionStatus 2 }}
                                 {{if eq $s.Enabled 0}}
                                 <li>
                                     <a class="dropdown-item" href="/strategy/{{$s.Uuid}}/tpsl/edit" data-uuid="{{$s.Uuid}}">

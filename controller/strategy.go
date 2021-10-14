@@ -305,6 +305,13 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 	uuid := c.Param("uuid")
 	errMsg := ""
 
+	// Check permission
+	strategy, err := ctl.db.GetContractStrategyByUuidByUser(uuid, userCookie.Uuid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Permission denied"})
+		return
+	}
+
 	// For money and currency formatting
 	ac := accounting.Accounting{Symbol: "$", Precision: 8}
 
@@ -312,13 +319,6 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 	accountInfo, err := ctl.getExchangeAccountInfo(c)
 	if err != nil {
 		errMsg = fmt.Sprintf("%s API server 無回應或 API Key 已失效", viper.GetString("DEFAULT_EXCHANGE"))
-	}
-
-	// Check permission
-	strategy, err := ctl.db.GetContractStrategyByUuidByUser(uuid, userCookie.Uuid)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Permission denied"})
-		return
 	}
 
 	leverage := ""
@@ -409,18 +409,107 @@ func (ctl *Controller) DeleteStrategy(c *gin.Context) {
 }
 
 func (ctl *Controller) EditStrategy(c *gin.Context) {
-	var errMsg string
+	if !ctl.tokenAuthCheck(c) {
+		return
+	}
+
+	userCookie := ctl.getUserData(c)
+	uuid := c.Param("uuid")
+	success := c.Query("success")
+	errMsg := ""
+
+	// Check permission
+	strategy, err := ctl.db.GetContractStrategyByUuidByUser(uuid, userCookie.Uuid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	// Make sure the status has been disabed and position status is closed
+	if strategy.Enabled != 0 || contract.Status(strategy.PositionStatus) != contract.CLOSED {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "策略未暫停或訂單狀態未結束"})
+		return
+	}
+
+	// Make sure it's not tracked by engine
+	if err = ctl.notBeingTrackedByEngine(c, uuid); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var collateral, leverage, totalMargin, availableMargin decimal.Decimal
+	accountInfo, err := ctl.getExchangeAccountInfo(c)
+	if err != nil {
+		errMsg = fmt.Sprintf("%s API server 無回應或 API Key 已失效", viper.GetString("DEFAULT_EXCHANGE"))
+	} else {
+		collateral = accountInfo["collateral"].(decimal.Decimal)
+		leverage = accountInfo["leverage"].(decimal.Decimal)
+		totalMargin = collateral.Mul(leverage)
+		availableMargin = accountInfo["free_collateral"].(decimal.Decimal).Mul(leverage)
+	}
+
 	c.HTML(http.StatusOK, "edit_strategy.html", gin.H{
-		"error": errMsg,
+		"loggedIn":        true,
+		"role":            ctl.getUserData(c).Role,
+		"success":         success,
+		"error":           errMsg,
+		"strategy":        strategy,
+		"collateral":      collateral.StringFixed(1),
+		"leverage":        leverage.StringFixed(0),
+		"totalMargin":     totalMargin.StringFixed(1),
+		"availableMargin": availableMargin.StringFixed(1),
 	})
 }
 
 func (ctl *Controller) UpdateStrategy(c *gin.Context) {
+	userCookie := ctl.getUserData(c)
+	uuid := c.Param("uuid")
+
+	// Validate margin
+	margin, err := decimal.NewFromString(c.PostForm("margin"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "margin is invalid"})
+		return
+	}
+
+	// Check permission
+	strategy, err := ctl.db.GetContractStrategyByUuidByUser(uuid, userCookie.Uuid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	// Make sure the status has been disabed and position status is closed
+	if strategy.Enabled != 0 || contract.Status(strategy.PositionStatus) != contract.CLOSED {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "策略未暫停或訂單狀態未結束"})
+		return
+	}
+
+	// Make sure it's not tracked by engine
+	if err = ctl.notBeingTrackedByEngine(c, uuid); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Update DB
+	data := map[string]interface{}{
+		"margin":  margin,
+		"comment": c.PostForm("comment"),
+	}
+	if _, err := ctl.db.UpdateContractStrategy(uuid, data); err != nil {
+		ctl.log.Println("failed to update db, err:", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{})
 }
 
 func (ctl *Controller) EditTpSl(c *gin.Context) {
 	var errMsg string
+
+	// TODO can update comment here
+
 	c.HTML(http.StatusOK, "edit_strategy_tpsl.html", gin.H{
 		"error": errMsg,
 	})

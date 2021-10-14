@@ -188,6 +188,7 @@ func (ctl *Controller) ClosePosition(c *gin.Context) {
 	if _, err := ctl.db.UpdateContractStrategy(uuid, data); err != nil {
 		ctl.log.Println("failed to update db, err:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{})
