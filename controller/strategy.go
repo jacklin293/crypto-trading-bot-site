@@ -328,7 +328,7 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 
 	params, err := json.Marshal(strategy.Params)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"}) // NOTE shouldn't use json, but it shouldn't happen
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"}) // NOTE it shouldn't happen
 		return
 	}
 	params = bytes.Replace(params, []byte("\\u003c"), []byte("<"), -1)
@@ -338,7 +338,7 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 	if len(strategy.ExchangeOrdersDetails) > 0 {
 		b, err := json.Marshal(strategy.ExchangeOrdersDetails)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"}) // NOTE shouldn't use json, but it shouldn't happen
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"}) // NOTE it shouldn't happen
 			return
 		}
 		b = bytes.Replace(b, []byte("\\u003c"), []byte("<"), -1)
