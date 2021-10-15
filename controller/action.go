@@ -260,7 +260,7 @@ func (ctl *Controller) closePosition(c *gin.Context, cs *db.ContractStrategy) er
 		return fmt.Errorf("請重試或到 %s APP 操作並重置狀態", cs.Exchange)
 	}
 
-	if err = ex.RetryClosePosition(cs.Symbol, order.Side(cs.Side), size, 30, 2); err != nil {
+	if err = ex.ClosePosition(cs.Symbol, order.Side(cs.Side), size); err != nil {
 		ctl.log.Println("[ERROR] failed to close position, err: ", err)
 		return fmt.Errorf("%s server error: '%s', 請重試或到 %s APP 操作並重置狀態", cs.Exchange, err.Error(), cs.Exchange)
 	}

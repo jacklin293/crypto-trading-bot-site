@@ -9,18 +9,9 @@
         </div>
     </div>
     {{ end }}
-    {{ if ne .success "" }}
     <div class="row rounded mb-3">
         <div class="col">
-            <div class="alert alert-success" role="alert">
-                成功更新策略
-            </div>
-        </div>
-    </div>
-    {{ end }}
-    <div class="row rounded mb-3">
-        <div class="col">
-            <form action="/strategy/{{.strategy.Uuid}}" method="POST" id="strategy-form">
+            <form method="POST" id="strategy-form">
                 <div class="row mt-2">
                     <label for="margin" class="col-3 col-form-label text-end">保證金</label>
                     <div class="col-9">
@@ -57,7 +48,7 @@ $( document ).ready(function() {
             url: '/strategy/{{.strategy.Uuid}}',
             data: $(this).serialize(),
             success: function() {
-                location.href = "/strategy/{{.strategy.Uuid}}/edit?success=true";
+                location.href = "/?success=strategy_updated";
             }
         }).fail(function(data) {
             alert(data.responseJSON.error);
