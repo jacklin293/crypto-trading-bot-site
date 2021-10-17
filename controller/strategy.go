@@ -14,6 +14,7 @@ import (
 
 	"crypto-trading-bot-engine/strategy/contract"
 	"crypto-trading-bot-engine/strategy/order"
+	"crypto-trading-bot-engine/strategy/trigger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -413,10 +414,9 @@ func (ctl *Controller) EditStrategy(c *gin.Context) {
 		return
 	}
 
+	var errMsg string
 	userCookie := ctl.getUserData(c)
 	uuid := c.Param("uuid")
-	success := c.Query("success")
-	errMsg := ""
 
 	// Check permission
 	strategy, err := ctl.db.GetContractStrategyByUuidByUser(uuid, userCookie.Uuid)
@@ -451,17 +451,20 @@ func (ctl *Controller) EditStrategy(c *gin.Context) {
 	c.HTML(http.StatusOK, "edit_strategy.html", gin.H{
 		"loggedIn":        true,
 		"role":            ctl.getUserData(c).Role,
-		"success":         success,
-		"error":           errMsg,
 		"strategy":        strategy,
 		"collateral":      collateral.StringFixed(1),
 		"leverage":        leverage.StringFixed(0),
 		"totalMargin":     totalMargin.StringFixed(1),
 		"availableMargin": availableMargin.StringFixed(1),
+		"error":           errMsg,
 	})
 }
 
 func (ctl *Controller) UpdateStrategy(c *gin.Context) {
+	if !ctl.tokenAuthCheck(c) {
+		return
+	}
+
 	userCookie := ctl.getUserData(c)
 	uuid := c.Param("uuid")
 
@@ -506,16 +509,233 @@ func (ctl *Controller) UpdateStrategy(c *gin.Context) {
 }
 
 func (ctl *Controller) EditTpSl(c *gin.Context) {
-	var errMsg string
+	if !ctl.tokenAuthCheck(c) {
+		return
+	}
 
-	// TODO can update comment here
+	var errMsg string
+	userCookie := ctl.getUserData(c)
+	uuid := c.Param("uuid")
+
+	// Check permission
+	strategy, err := ctl.db.GetContractStrategyByUuidByUser(uuid, userCookie.Uuid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	// Make sure the status has been disabed and position status is closed
+	if strategy.Enabled != 0 || contract.Status(strategy.PositionStatus) == contract.UNKNOWN {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "策略未暫停或訂單狀態未知"})
+		return
+	}
+
+	// Make sure it's not tracked by engine
+	if err = ctl.notBeingTrackedByEngine(c, uuid); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	contract, err := contract.NewContract(order.Side(strategy.Side), strategy.Params)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Internal error, err: %v", err.Error())})
+		return
+	}
+
+	var slEnabled, tpEnabled bool
+	var slTriggerType, tpTriggerType, slOperator, tpOperator, slPrice, tpPrice string
+	if contract.StopLossOrder != nil {
+		slEnabled = true
+		trigger := contract.StopLossOrder.GetTrigger()
+		if trigger != nil {
+			slTriggerType = trigger.GetTriggerType()
+			slOperator = trigger.GetOperator()
+			slPrice = trigger.GetPrice(time.Now()).String()
+		}
+	}
+	if contract.TakeProfitOrder != nil {
+		tpEnabled = true
+		trigger := contract.TakeProfitOrder.GetTrigger()
+		if trigger != nil {
+			tpTriggerType = trigger.GetTriggerType()
+			tpOperator = trigger.GetOperator()
+			tpPrice = trigger.GetPrice(time.Now()).String()
+		}
+	}
 
 	c.HTML(http.StatusOK, "edit_strategy_tpsl.html", gin.H{
-		"error": errMsg,
+		"loggedIn":      true,
+		"role":          ctl.getUserData(c).Role,
+		"error":         errMsg,
+		"strategy":      strategy,
+		"entryType":     contract.EntryType,
+		"slEnabled":     slEnabled,
+		"slTriggerType": slTriggerType,
+		"slOperator":    slOperator,
+		"slPrice":       slPrice,
+		"tpEnabled":     tpEnabled,
+		"tpTriggerType": tpTriggerType,
+		"tpOperator":    tpOperator,
+		"tpPrice":       tpPrice,
 	})
 }
 
 func (ctl *Controller) UpdateTpSl(c *gin.Context) {
+	if !ctl.tokenAuthCheck(c) {
+		return
+	}
+
+	userCookie := ctl.getUserData(c)
+	uuid := c.Param("uuid")
+
+	// Check permission
+	strategy, err := ctl.db.GetContractStrategyByUuidByUser(uuid, userCookie.Uuid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	// Make sure the status has been disabed and position status is closed
+	if strategy.Enabled != 0 || contract.Status(strategy.PositionStatus) == contract.UNKNOWN {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "策略未暫停或訂單狀態未知"})
+		return
+	}
+
+	// Make sure it's not tracked by engine
+	if err = ctl.notBeingTrackedByEngine(c, uuid); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// New exchange
+	ex, err := ctl.newExchange(c)
+	if err != nil {
+		return
+	}
+
+	// Process stop-loss
+	switch strategy.Params["entry_type"].(string) {
+	case order.ENTRY_LIMIT:
+		if c.PostForm("stop_loss[enabled]") == "1" {
+			// Validate stop-loss params
+			slTriggerParams := map[string]interface{}{
+				"trigger_type": c.PostForm("stop_loss[trigger_type]"),
+				"operator":     c.PostForm("stop_loss[operator]"),
+				"price":        c.PostForm("stop_loss[price]"),
+			}
+			slTrigger, err := trigger.NewTrigger(slTriggerParams)
+			if err != nil {
+				ctl.log.Println("new stop-loss trigger, err: ", err)
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
+				return
+			}
+			strategy.Params["stop_loss_order"] = map[string]interface{}{
+				"trigger": slTriggerParams,
+			}
+
+			// Update stop-loss order trigger
+			if contract.Status(strategy.PositionStatus) == contract.OPENED {
+				// Cancel open trigger order if exists
+				if err := ctl.cancelStopLossOrder(ex, strategy); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+					return
+				}
+				// It's ok if key doesn't exist
+				delete(strategy.ExchangeOrdersDetails, "stop_loss_order")
+
+				// Place stop-loss order
+				orderId, err := ctl.updateStopLossOrder(ex, strategy, slTrigger.GetPrice(time.Now()))
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+					return
+				}
+				strategy.ExchangeOrdersDetails["stop_loss_order"] = map[string]interface{}{
+					"order_id": float64(orderId),
+				}
+			}
+		} else {
+			delete(strategy.Params, "stop_loss_order")
+
+			// Cancel stop-loss trigger order
+			if contract.Status(strategy.PositionStatus) == contract.OPENED {
+				// Cancel open trigger order
+				if err := ctl.cancelStopLossOrder(ex, strategy); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+					return
+				}
+				delete(strategy.ExchangeOrdersDetails, "stop_loss_order")
+			}
+		}
+	case order.ENTRY_TRENDLINE:
+		// NOTE trendline will create stop-loss order after entry triggered
+		//      There is no point to change stop-loss order before that, because it will be overridden anyway
+		_, ok := strategy.Params["stop_loss_order"]
+		if ok && contract.Status(strategy.PositionStatus) == contract.OPENED {
+			slTriggerParams := map[string]interface{}{
+				"trigger_type": c.PostForm("stop_loss[trigger_type]"),
+				"operator":     c.PostForm("stop_loss[operator]"),
+				"price":        c.PostForm("stop_loss[price]"),
+			}
+			slTrigger, err := trigger.NewTrigger(slTriggerParams)
+			if err != nil {
+				ctl.log.Println("new stop-loss trigger, err: ", err)
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
+				return
+			}
+			strategy.Params["stop_loss_order"].(map[string]interface{})["trigger"] = slTriggerParams
+
+			// Cancel open trigger order if exists
+			if err := ctl.cancelStopLossOrder(ex, strategy); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			delete(strategy.ExchangeOrdersDetails, "stop_loss_order")
+
+			// Place stop-loss order
+			orderId, err := ctl.updateStopLossOrder(ex, strategy, slTrigger.GetPrice(time.Now()))
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			strategy.ExchangeOrdersDetails["stop_loss_order"] = map[string]interface{}{
+				"order_id": float64(orderId),
+			}
+		}
+	}
+
+	// Process take-profit
+	if c.PostForm("take_profit[enabled]") == "1" {
+		// Validate take-profit params
+		tpTriggerParams := map[string]interface{}{
+			"trigger_type": c.PostForm("take_profit[trigger_type]"),
+			"operator":     c.PostForm("take_profit[operator]"),
+			"price":        c.PostForm("take_profit[price]"),
+		}
+		_, err = trigger.NewTrigger(tpTriggerParams)
+		if err != nil {
+			ctl.log.Println("new take-profit trigger, err: ", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
+			return
+		}
+		strategy.Params["take_profit_order"] = map[string]interface{}{
+			"trigger": tpTriggerParams,
+		}
+	} else {
+		delete(strategy.Params, "take_profit_order")
+	}
+
+	// Update DB
+	data := map[string]interface{}{
+		"params":                  strategy.Params,
+		"exchange_orders_details": strategy.ExchangeOrdersDetails,
+		"comment":                 c.PostForm("comment"),
+	}
+	if _, err := ctl.db.UpdateContractStrategy(uuid, data); err != nil {
+		ctl.log.Println("failed to update db, err:", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{})
 }
 
@@ -741,4 +961,45 @@ func (ctl *Controller) convertTrendlineContractParams(c *gin.Context) (map[strin
 	}
 
 	return data, nil
+}
+
+func (ctl *Controller) cancelStopLossOrder(ex exchange.Exchanger, strategy *db.ContractStrategy) (err error) {
+	// If stop-loss order has been set
+	slOrderDetails, ok := strategy.ExchangeOrdersDetails["stop_loss_order"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	// Cancel open trigger order
+	orderId := int64(slOrderDetails["order_id"].(float64))
+	err = ex.CancelStopLossOrder(orderId)
+	if err != nil {
+		ctl.log.Printf("cancelStopLossOrder - failed to cancel stop-loss order, err: %v", err)
+		err = fmt.Errorf("%s server error: '%s'", strategy.Exchange, err.Error())
+	}
+	return
+}
+
+func (ctl *Controller) updateStopLossOrder(ex exchange.Exchanger, strategy *db.ContractStrategy, price decimal.Decimal) (orderId int64, err error) {
+	// Get size
+	position, err := ex.GetPosition(strategy.Symbol)
+	if err != nil {
+		ctl.log.Printf("updateStopLossOrder - failed to get position, err: %v", err)
+		err = fmt.Errorf("%s server error: '%s'", strategy.Exchange, err.Error())
+		return
+	}
+	size, err := decimal.NewFromString(position["size"].(string))
+	if err != nil {
+		ctl.log.Printf("updateStopLossOrder - failed to get size from position, err: %v", err)
+		err = errors.New("Internal error")
+		return
+	}
+
+	// Place stop-loss trigger order
+	orderId, err = ex.PlaceStopLossOrder(strategy.Symbol, order.Side(strategy.Side), price, size)
+	if err != nil {
+		ctl.log.Printf("updateStopLossOrder - failed to place stop-loss order, err: %v", err)
+		err = fmt.Errorf("%s server error: '%s'", strategy.Exchange, err.Error())
+	}
+	return
 }

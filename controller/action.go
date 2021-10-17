@@ -98,7 +98,7 @@ func (ctl *Controller) ResetStrategy(c *gin.Context) {
 	uuid := c.Param("uuid")
 
 	// Check permission
-	_, err := ctl.db.GetContractStrategyByUuidByUser(uuid, userCookie.Uuid)
+	strategy, err := ctl.db.GetContractStrategyByUuidByUser(uuid, userCookie.Uuid)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Permission denied"})
 		return
@@ -110,8 +110,19 @@ func (ctl *Controller) ResetStrategy(c *gin.Context) {
 		return
 	}
 
+	// Reset contract params
+	// FIXME refactor with unsetStopLossParamsAfterClosingPosition
+	// FIXME make a reset function in engine (ParamsUpdated)
+	if strategy.Params["entry_type"].(string) == order.ENTRY_TRENDLINE {
+		delete(strategy.Params, "breakout_peak")
+		if _, ok := strategy.Params["stop_loss_order"]; ok {
+			delete(strategy.Params["stop_loss_order"].(map[string]interface{}), "trigger")
+		}
+	}
+
 	// Update DB
 	data := map[string]interface{}{
+		"params":                  strategy.Params,
 		"enabled":                 0,
 		"position_status":         int64(contract.CLOSED),
 		"exchange_orders_details": datatypes.JSONMap{},
@@ -286,6 +297,7 @@ func (ctl *Controller) unsetStopLossParamsAfterClosingPosition(cs *db.ContractSt
 		return
 	}
 
+	// FIXME refactor
 	params = datatypes.JSONMap{
 		"entry_type":  contract.EntryType,
 		"entry_order": contract.EntryOrder,

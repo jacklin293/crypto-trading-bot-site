@@ -11,10 +11,130 @@
     {{ end }}
     <div class="row rounded mb-3">
         <div class="col">
-            <div class="row">
-                TODO 修改停利停損
-            </div>
+            <form method="POST" id="strategy-form">
+                {{ if and (eq .entryType "trendline") (eq .strategy.PositionStatus 0) }}
+                <div class="row mt-2">
+                    <label class="col-3 col-form-label text-end">停損</label>
+                    <div class="col-9 pt-2">
+                        {{ if .slEnabled }}
+                        趨勢線只能在開倉後修改停損
+                        {{ else }}
+                        趨勢線在建立後無法設定或取消
+                        {{ end }}
+                    </div>
+                </div>
+                {{ else }}
+                <!-- stop loss -->
+                <div class="row mt-2">
+                    <label class="col-3 col-form-label text-end">停損</label>
+                    <div class="col-9 pt-2">
+                        <!-- Once trendline stop-loss has been decided, it can't be disabled or enabled afterwards -->
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input bg-light" type="radio" name="stop_loss[enabled]" value="1" id="stop-loss-enabled" {{if .slEnabled}} checked {{end}} {{if eq .entryType "trendline"}} disabled {{end}}>
+                            <label class="form-check-label" for="stop-loss-enabled">設定</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input bg-light" type="radio" name="stop_loss[enabled]" id="stop-loss-disabled" value="0" {{if not .slEnabled}} checked {{end}} {{if eq .entryType "trendline"}} disabled {{end}}>
+                            <label class="form-check-label" for="stop-loss-disabled">不設定</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-2 {{if not .slEnabled}} d-none {{end}}" id="stop-loss-settings">
+                    <input type="hidden" name="stop_loss[trigger_type]" value="limit"/>
+                    <label class="col-3 col-form-label text-end">當標價</label>
+                    <div class="col-3 pt-1">
+                        <select class="form-select form-select-sm form-select-inline bg-light" aria-label=".form-select-sm" name="stop_loss[operator]">
+                            <option value=">=" {{if eq .slOperator ">="}} selected {{end}}>>=</option>
+                            <option value="<=" {{if eq .slOperator "<="}} selected {{end}}><=</option>
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        <input type="input" class="form-control bg-light" name="stop_loss[price]" placeholder="e.g. 57000" value="{{.slPrice}}">
+                    </div>
+                    <label class="col-2 col-form-label">停損</label>
+                </div>
+                {{ end }}
+                <!-- take profit -->
+                <div class="row mt-2">
+                    <label class="col-3 col-form-label text-end">停利</label>
+                    <div class="col-9 pt-2">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input bg-light" type="radio" name="take_profit[enabled]" value="1" id="take-profit-enabled" {{if .tpEnabled}} checked {{end}}>
+                            <label class="form-check-label" for="take-profit-enabled">設定</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input bg-light" type="radio" name="take_profit[enabled]" id="take-profit-disabled" value="0" {{if not .tpEnabled}} checked {{end}}>
+                            <label class="form-check-label" for="take-profit-disabled">不設定</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-2 {{if not .tpEnabled}} d-none {{end}}" id="take-profit-settings">
+                    <input type="hidden" name="take_profit[trigger_type]" value="limit"/>
+                    <label class="col-3 col-form-label text-end">當標價</label>
+                    <div class="col-3 pt-1">
+                        <select class="form-select form-select-sm form-select-inline bg-light" aria-label=".form-select-sm" name="take_profit[operator]">
+                            <option value=">=" {{if eq .tpOperator ">="}} selected {{end}}>>=</option>
+                            <option value="<=" {{if eq .tpOperator "<="}} selected {{end}}><=</option>
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        <input type="input" class="form-control bg-light" name="take_profit[price]" placeholder="e.g. 57000" value="{{.tpPrice}}">
+                    </div>
+                    <label class="col-2 col-form-label">停利</label>
+                </div>
+                <div class="row mt-2">
+                    <label class="col-3 col-form-label text-end" for="comment">備註</label>
+                    <div class="col-9 pt-2">
+                        <textarea class="form-control" id="comment" rows="2" placeholder="(選填,需少於100個字元)" name="comment">{{.strategy.Comment}}</textarea>
+                    </div>
+                </div>
+                <!-- submit -->
+                <div class="row mt-2">
+                    <div class="col-3 mx-auto">
+                        <button type="submit" id="submit-button" class="btn btn-primary">送出</button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 {{ template "footer.html" .}}
+<script>
+$( document ).ready(function() {
+    $("#strategy-form").on("submit", function(event){
+        event.preventDefault();
+
+        // submit
+        $.ajax({
+            type: 'PATCH',
+            url: '/strategy/{{.strategy.Uuid}}/tpsl',
+            data: $(this).serialize(),
+            success: function() {
+                location.href = "/?success=strategy_updated";
+            }
+        }).fail(function(data) {
+            alert(data.responseJSON.error);
+        });
+    });
+
+    // stop-loss
+    $("input[name='stop_loss[enabled]']").click(function() {
+        var checked = $("input[name='stop_loss[enabled]']:checked").val();
+        if (checked === "1") {
+            $('#stop-loss-settings').removeClass("d-none");
+        } else {
+            $('#stop-loss-settings').addClass("d-none");
+        }
+    });
+
+    // take-profit
+    $("input[name='take_profit[enabled]']").click(function() {
+        var checked = $("input[name='take_profit[enabled]']:checked").val();
+        if (checked === "1") {
+            $('#take-profit-settings').removeClass("d-none");
+        } else {
+            $('#take-profit-settings').addClass("d-none");
+        }
+    });
+});
+</script>
