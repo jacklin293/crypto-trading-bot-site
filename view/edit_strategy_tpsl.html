@@ -30,11 +30,11 @@
                     <div class="col-9 pt-2">
                         <!-- Once trendline stop-loss has been decided, it can't be disabled or enabled afterwards -->
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input bg-light" type="radio" name="stop_loss[enabled]" value="1" id="stop-loss-enabled" {{if .slEnabled}} checked {{end}} {{if eq .entryType "trendline"}} disabled {{end}}>
+                            <input class="form-check-input" type="radio" name="stop_loss[enabled]" value="1" id="stop-loss-enabled" {{if .slEnabled}} checked {{end}} {{if eq .entryType "trendline"}} disabled {{end}}>
                             <label class="form-check-label" for="stop-loss-enabled">設定</label>
                         </div>
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input bg-light" type="radio" name="stop_loss[enabled]" id="stop-loss-disabled" value="0" {{if not .slEnabled}} checked {{end}} {{if eq .entryType "trendline"}} disabled {{end}}>
+                            <input class="form-check-input" type="radio" name="stop_loss[enabled]" id="stop-loss-disabled" value="0" {{if not .slEnabled}} checked {{end}} {{if eq .entryType "trendline"}} disabled {{end}}>
                             <label class="form-check-label" for="stop-loss-disabled">不設定</label>
                         </div>
                     </div>
@@ -49,7 +49,7 @@
                         </select>
                     </div>
                     <div class="col-4">
-                        <input type="input" class="form-control bg-light" name="stop_loss[price]" placeholder="e.g. 57000" value="{{.slPrice}}">
+                        <input type="number" step="any" class="form-control bg-light" name="stop_loss[price]" placeholder="e.g. 57000" value="{{.slPrice}}">
                     </div>
                     <label class="col-2 col-form-label">停損</label>
                 </div>
@@ -59,11 +59,11 @@
                     <label class="col-3 col-form-label text-end">停利</label>
                     <div class="col-9 pt-2">
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input bg-light" type="radio" name="take_profit[enabled]" value="1" id="take-profit-enabled" {{if .tpEnabled}} checked {{end}}>
+                            <input class="form-check-input" type="radio" name="take_profit[enabled]" value="1" id="take-profit-enabled" {{if .tpEnabled}} checked {{end}}>
                             <label class="form-check-label" for="take-profit-enabled">設定</label>
                         </div>
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input bg-light" type="radio" name="take_profit[enabled]" id="take-profit-disabled" value="0" {{if not .tpEnabled}} checked {{end}}>
+                            <input class="form-check-input" type="radio" name="take_profit[enabled]" id="take-profit-disabled" value="0" {{if not .tpEnabled}} checked {{end}}>
                             <label class="form-check-label" for="take-profit-disabled">不設定</label>
                         </div>
                     </div>
@@ -78,7 +78,7 @@
                         </select>
                     </div>
                     <div class="col-4">
-                        <input type="input" class="form-control bg-light" name="take_profit[price]" placeholder="e.g. 57000" value="{{.tpPrice}}">
+                        <input type="number" step="any" class="form-control bg-light" name="take_profit[price]" placeholder="e.g. 57000" value="{{.tpPrice}}">
                     </div>
                     <label class="col-2 col-form-label">停利</label>
                 </div>

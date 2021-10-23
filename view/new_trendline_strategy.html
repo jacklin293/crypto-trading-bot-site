@@ -37,11 +37,11 @@
                     <label class="col-3 col-form-label text-end">方向</label>
                     <div class="col-9 pt-2">
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input bg-light" type="radio" name="side" value="1" id="long" checked>
+                            <input class="form-check-input" type="radio" name="side" value="1" id="long" checked>
                             <label class="form-check-label" for="long">多</label>
                         </div>
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input bg-light" type="radio" name="side" value="0" id="short">
+                            <input class="form-check-input" type="radio" name="side" value="0" id="short">
                             <label class="form-check-label" for="short">空</label>
                         </div>
                     </div>
@@ -50,7 +50,7 @@
                 <div class="row mt-2">
                     <label for="margin" class="col-3 col-form-label text-end">保證金</label>
                     <div class="col-9">
-                        <input type="input" class="form-control bg-light" name="margin" placeholder="e.g. 1000">
+                        <input type="number" step="any" class="form-control bg-light" name="margin" placeholder="e.g. 1000">
                         <div class="form-text">總可用餘額: {{.availableMargin}}</div>
                         <div class="form-text">本金: {{.collateral}} ({{.leverage}}x)  總資金: {{.totalMargin}}</div>
                     </div>
@@ -68,7 +68,7 @@
                         <div class="row mt-2">
                             <label for="margin" class="col-3 col-form-label text-end">價格1</label>
                             <div class="col-9">
-                                <input type="input" class="form-control bg-light" name="entry[price_1]" placeholder="e.g. 45000">
+                                <input type="number" step="any" class="form-control bg-light" name="entry[price_1]" placeholder="e.g. 45000">
                             </div>
                         </div>
                         <div class="row mt-2">
@@ -80,7 +80,7 @@
                         <div class="row mt-2">
                             <label for="margin" class="col-3 col-form-label text-end">價格2</label>
                             <div class="col-9">
-                                <input type="input" class="form-control bg-light" name="entry[price_2]" placeholder="e.g. 47000">
+                                <input type="number" step="any" class="form-control bg-light" name="entry[price_2]" placeholder="e.g. 47000">
                             </div>
                         </div>
                         <div class="row mt-2">
@@ -92,7 +92,7 @@
                                 </select>
                             </div>
                             <div class="col-3">
-                                <input type="input" class="form-control bg-light" name="entry[trendline_offset_percent]" placeholder="e.g. 1">
+                                <input type="number" step="any" class="form-control bg-light" name="entry[trendline_offset_percent]" placeholder="e.g. 1">
                             </div>
                             <label class="col-3 col-form-label">% 開倉</label>
                         </div>
@@ -101,11 +101,11 @@
                             <div class="col-9">
                                 <label class="col-form-label text-end">自動調整Operator</label>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input bg-light" type="radio" name="entry[flip_operator_enabled]" value="1" id="flip-enabled">
+                                    <input class="form-check-input" type="radio" name="entry[flip_operator_enabled]" value="1" id="flip-enabled">
                                     <label class="form-check-label" for="flip-enabled">開</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input bg-light" type="radio" name="entry[flip_operator_enabled]" value="0" id="flip-disabled" checked>
+                                    <input class="form-check-input" type="radio" name="entry[flip_operator_enabled]" value="0" id="flip-disabled" checked>
                                     <label class="form-check-label" for="flip-disabled">關</label>
                                 </div>
                             </div>
@@ -117,11 +117,11 @@
                     <label class="col-3 col-form-label text-end">停損</label>
                     <div class="col-9 pt-2">
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input bg-light" type="radio" name="stop_loss[enabled]" value="1" id="stop-loss-enabled">
+                            <input class="form-check-input" type="radio" name="stop_loss[enabled]" value="1" id="stop-loss-enabled">
                             <label class="form-check-label" for="stop-loss-enabled">設定</label>
                         </div>
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input bg-light" type="radio" name="stop_loss[enabled]" id="stop-loss-disabled" value="0" checked>
+                            <input class="form-check-input" type="radio" name="stop_loss[enabled]" id="stop-loss-disabled" value="0" checked>
                             <label class="form-check-label" for="stop-loss-disabled">不設定</label>
                         </div>
                     </div>
@@ -131,7 +131,7 @@
                         <div class="row">
                             <label class="col-3 col-form-label text-end">開倉價</label>
                             <div class="col-3">
-                                <input type="input" class="form-control bg-light" name="stop_loss[loss_tolerance_percent]" placeholder="e.g. 1">
+                                <input type="number" step="any" class="form-control bg-light" name="stop_loss[loss_tolerance_percent]" placeholder="e.g. 1">
                             </div>
                             <label class="col-6 col-form-label">% 停損</label>
                         </div>
@@ -140,11 +140,11 @@
                             <div class="col-9">
                                 <label class="col-form-label text-end">自動調整趨勢線</label>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input bg-light" type="radio" name="stop_loss[trendline_readjustment_enabled]" value="1" id="readjustment-enabled" checked>
+                                    <input class="form-check-input" type="radio" name="stop_loss[trendline_readjustment_enabled]" value="1" id="readjustment-enabled" checked>
                                     <label class="form-check-label" for="readjustment-enabled">開</label>
                                 </div>
                                 <div class="form-check form-check-inline">
-                                    <input class="form-check-input bg-light" type="radio" name="stop_loss[trendline_readjustment_enabled]" id="readjustment-disabled" value="0">
+                                    <input class="form-check-input" type="radio" name="stop_loss[trendline_readjustment_enabled]" id="readjustment-disabled" value="0">
                                     <label class="form-check-label" for="readjustment-disabled">關</label>
                                 </div>
                             </div>
@@ -156,11 +156,11 @@
                     <label class="col-3 col-form-label text-end">停利</label>
                     <div class="col-9 pt-2">
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input bg-light" type="radio" name="take_profit[enabled]" value="1" id="take-profit-enabled">
+                            <input class="form-check-input" type="radio" name="take_profit[enabled]" value="1" id="take-profit-enabled">
                             <label class="form-check-label" for="take-profit-enabled">設定</label>
                         </div>
                         <div class="form-check form-check-inline">
-                            <input class="form-check-input bg-light" type="radio" name="take_profit[enabled]" id="take-profit-disabled" value="0" checked>
+                            <input class="form-check-input" type="radio" name="take_profit[enabled]" id="take-profit-disabled" value="0" checked>
                             <label class="form-check-label" for="take-profit-disabled">不設定</label>
                         </div>
                     </div>
@@ -175,7 +175,7 @@
                         </select>
                     </div>
                     <div class="col-4">
-                        <input type="input" class="form-control bg-light" name="take_profit[price]" placeholder="e.g. 57000">
+                        <input type="number" step="any" class="form-control bg-light" name="take_profit[price]" placeholder="e.g. 57000">
                     </div>
                     <label class="col-2 col-form-label">停利</label>
                 </div>
@@ -238,6 +238,20 @@ $( document ).ready(function() {
             $('#stop-loss-settings').removeClass("d-none");
         } else {
             $('#stop-loss-settings').addClass("d-none");
+        }
+    });
+
+    // Only one of flip_operator_enabled or trendline_readjustment_enabled can be true
+    $("input[name='entry[flip_operator_enabled]']").click(function() {
+        var checked = $("input[name='entry[flip_operator_enabled]']:checked").val();
+        if (checked === "1") {
+            $("#readjustment-disabled").prop('checked', true);
+        }
+    });
+    $("input[name='stop_loss[trendline_readjustment_enabled]']").click(function() {
+        var checked = $("input[name='stop_loss[trendline_readjustment_enabled]']:checked").val();
+        if (checked === "1") {
+            $("#flip-disabled").prop('checked', true);
         }
     });
 

@@ -15,7 +15,7 @@
                 <div class="row mt-2">
                     <label for="margin" class="col-3 col-form-label text-end">保證金</label>
                     <div class="col-9">
-                        <input type="input" class="form-control bg-light" name="margin" placeholder="e.g. 1000" value="{{.strategy.Margin}}">
+                        <input type="number" step="any" class="form-control bg-light" name="margin" placeholder="e.g. 1000" value="{{.strategy.Margin}}">
                         <div class="form-text">總可用餘額: {{.availableMargin}}</div>
                         <div class="form-text">本金: {{.collateral}} ({{.leverage}}x)  總資金: {{.totalMargin}}</div>
                     </div>
