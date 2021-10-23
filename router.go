@@ -43,8 +43,6 @@ func setRouter(r *gin.Engine, c *controller.Controller) {
 	r.GET("/strategy/:uuid/edit_trendline", c.EditTrendline)
 	r.GET("/strategy/:uuid/edit_limit", c.EditLimit)
 	r.PATCH("/strategy/:uuid", c.UpdateStrategy)
-	r.GET("/strategy/:uuid/margin/edit", c.EditMargin)
-	r.PATCH("/strategy/:uuid/margin", c.UpdateMargin)
 	r.GET("/strategy/:uuid/tpsl/edit", c.EditTpSl)
 	r.PATCH("/strategy/:uuid/tpsl", c.UpdateTpSl)
 
