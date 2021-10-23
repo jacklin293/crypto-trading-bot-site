@@ -32,10 +32,12 @@ type StrategyTmpl struct {
 	SymbolPart1    string
 	SymbolPart2    string
 	Side           int64
+	Margin         string
 	Leverage       string
 	Enabled        int64
 	PositionStatus int64
 	BuyPrice       string // to buy
+	EntryType      string
 	EntryPrice     string // bought
 	TakeProfit     string
 	StopLoss       string
@@ -106,6 +108,8 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 				errMsg = "Internal error"
 				continue
 			}
+			st.EntryType = contract.EntryType
+
 			// This doesn't matter for position
 			st.BuyPrice = ac.FormatMoneyDecimal(contract.EntryOrder.GetTrigger().GetPrice(time.Now()))
 
@@ -132,6 +136,7 @@ func (ctl *Controller) ListStrategies(c *gin.Context) {
 		st.SymbolPart1 = symbol[0]
 		st.SymbolPart2 = symbol[1]
 		st.Side = cs.Side
+		st.Margin = ac.FormatMoneyDecimal(cs.Margin)
 		st.Enabled = cs.Enabled
 		st.PositionStatus = cs.PositionStatus
 		st.EntryPrice = ac.FormatMoneyDecimal(entryPrice)
@@ -409,7 +414,254 @@ func (ctl *Controller) DeleteStrategy(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{})
 }
 
-func (ctl *Controller) EditStrategy(c *gin.Context) {
+func (ctl *Controller) EditLimit(c *gin.Context) {
+	if !ctl.tokenAuthCheck(c) {
+		return
+	}
+	userCookie := ctl.getUserData(c)
+	uuid := c.Param("uuid")
+
+	// Check permission
+	strategy, err := ctl.db.GetContractStrategyByUuidByUser(uuid, userCookie.Uuid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	// Make sure the status has been disabed and position status is closed
+	if strategy.Enabled != 0 || contract.Status(strategy.PositionStatus) != contract.CLOSED {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "策略未暫停或訂單狀態未結束"})
+		return
+	}
+
+	// Make sure it's not tracked by engine
+	if err = ctl.notBeingTrackedByEngine(c, uuid); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var errMsg string
+	var collateral, leverage, totalMargin, availableMargin decimal.Decimal
+	accountInfo, err := ctl.getExchangeAccountInfo(c)
+	if err != nil {
+		errMsg = fmt.Sprintf("%s API server 無回應或 API Key 已失效", viper.GetString("DEFAULT_EXCHANGE"))
+	} else {
+		collateral = accountInfo["collateral"].(decimal.Decimal)
+		leverage = accountInfo["leverage"].(decimal.Decimal)
+		totalMargin = collateral.Mul(leverage)
+		availableMargin = accountInfo["free_collateral"].(decimal.Decimal).Mul(leverage)
+	}
+
+	// Convert params
+	contract, err := contract.NewContract(order.Side(strategy.Side), strategy.Params)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Internal error, err: %v", err.Error())})
+		return
+	}
+
+	var slEnabled, tpEnabled bool
+	var slOperator, tpOperator, slPrice, tpPrice string
+	if contract.StopLossOrder != nil {
+		slEnabled = true
+		trigger := contract.StopLossOrder.GetTrigger()
+		if trigger != nil {
+			slOperator = trigger.GetOperator()
+			slPrice = trigger.GetPrice(time.Now()).String()
+		}
+	}
+	if contract.TakeProfitOrder != nil {
+		tpEnabled = true
+		trigger := contract.TakeProfitOrder.GetTrigger()
+		if trigger != nil {
+			tpOperator = trigger.GetOperator()
+			tpPrice = trigger.GetPrice(time.Now()).String()
+		}
+	}
+
+	c.HTML(http.StatusOK, "edit_limit_strategy.html", gin.H{
+		"loggedIn":        true,
+		"role":            ctl.getUserData(c).Role,
+		"error":           errMsg,
+		"strategy":        strategy,
+		"collateral":      collateral.StringFixed(1),
+		"leverage":        leverage.StringFixed(0),
+		"totalMargin":     totalMargin.StringFixed(1),
+		"availableMargin": availableMargin.StringFixed(1),
+
+		// params
+		"entryOperator":    contract.EntryOrder.GetTrigger().GetOperator(),
+		"entryPrice":       contract.EntryOrder.GetTrigger().GetPrice(time.Now()).String(),
+		"entryFlipEnabled": contract.EntryOrder.(*order.Entry).FlipOperatorEnabled,
+		"slEnabled":        slEnabled,
+		"slOperator":       slOperator,
+		"slPrice":          slPrice,
+		"tpEnabled":        tpEnabled,
+		"tpOperator":       tpOperator,
+		"tpPrice":          tpPrice,
+	})
+}
+
+func (ctl *Controller) EditTrendline(c *gin.Context) {
+	if !ctl.tokenAuthCheck(c) {
+		return
+	}
+	userCookie := ctl.getUserData(c)
+	uuid := c.Param("uuid")
+
+	// Check permission
+	strategy, err := ctl.db.GetContractStrategyByUuidByUser(uuid, userCookie.Uuid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	// Make sure the status has been disabed and position status is closed
+	if strategy.Enabled != 0 || contract.Status(strategy.PositionStatus) != contract.CLOSED {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "策略未暫停或訂單狀態未結束"})
+		return
+	}
+
+	// Make sure it's not tracked by engine
+	if err = ctl.notBeingTrackedByEngine(c, uuid); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var errMsg string
+	var collateral, leverage, totalMargin, availableMargin decimal.Decimal
+	accountInfo, err := ctl.getExchangeAccountInfo(c)
+	if err != nil {
+		errMsg = fmt.Sprintf("%s API server 無回應或 API Key 已失效", viper.GetString("DEFAULT_EXCHANGE"))
+	} else {
+		collateral = accountInfo["collateral"].(decimal.Decimal)
+		leverage = accountInfo["leverage"].(decimal.Decimal)
+		totalMargin = collateral.Mul(leverage)
+		availableMargin = accountInfo["free_collateral"].(decimal.Decimal).Mul(leverage)
+	}
+
+	// Convert params
+	contract, err := contract.NewContract(order.Side(strategy.Side), strategy.Params)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Internal error, err: %v", err.Error())})
+		return
+	}
+
+	var slEnabled, tpEnabled, slReadjustmentEnabled bool
+	var tpOperator, tpPrice string
+	var slLossPercent float64
+	if contract.StopLossOrder != nil {
+		slEnabled = true
+		slReadjustmentEnabled = contract.StopLossOrder.(*order.StopLoss).TrendlineReadjustmentEnabled
+		slLossPercent = contract.StopLossOrder.(*order.StopLoss).LossTolerancePercent
+	}
+	if contract.TakeProfitOrder != nil {
+		tpEnabled = true
+		trigger := contract.TakeProfitOrder.GetTrigger()
+		if trigger != nil {
+			tpOperator = trigger.GetOperator()
+			tpPrice = trigger.GetPrice(time.Now()).String()
+		}
+	}
+
+	c.HTML(http.StatusOK, "edit_trendline_strategy.html", gin.H{
+		"loggedIn":        true,
+		"role":            ctl.getUserData(c).Role,
+		"error":           errMsg,
+		"strategy":        strategy,
+		"collateral":      collateral.StringFixed(1),
+		"leverage":        leverage.StringFixed(0),
+		"totalMargin":     totalMargin.StringFixed(1),
+		"availableMargin": availableMargin.StringFixed(1),
+
+		// params
+		"entryPrice1":           contract.EntryOrder.(*order.Entry).TrendlineTrigger.(*trigger.Line).Price1,
+		"entryTime1":            contract.EntryOrder.(*order.Entry).TrendlineTrigger.(*trigger.Line).Time1,
+		"entryPrice2":           contract.EntryOrder.(*order.Entry).TrendlineTrigger.(*trigger.Line).Price2,
+		"entryTime2":            contract.EntryOrder.(*order.Entry).TrendlineTrigger.(*trigger.Line).Time2,
+		"entryOperator":         contract.EntryOrder.(*order.Entry).TrendlineTrigger.GetOperator(),
+		"entryFlipEnabled":      contract.EntryOrder.(*order.Entry).FlipOperatorEnabled,
+		"entryOffsetPercent":    decimal.NewFromFloat(contract.EntryOrder.(*order.Entry).TrendlineOffsetPercent).Mul(decimal.NewFromInt(100)).String(),
+		"slEnabled":             slEnabled,
+		"slLossPercent":         decimal.NewFromFloat(slLossPercent).Mul(decimal.NewFromInt(100)).String(),
+		"slReadjustmentEnabled": slReadjustmentEnabled,
+		"tpEnabled":             tpEnabled,
+		"tpOperator":            tpOperator,
+		"tpPrice":               tpPrice,
+	})
+}
+
+func (ctl *Controller) UpdateStrategy(c *gin.Context) {
+	if !ctl.tokenAuthCheck(c) {
+		return
+	}
+	userCookie := ctl.getUserData(c)
+	uuid := c.Param("uuid")
+
+	// Check permission
+	strategy, err := ctl.db.GetContractStrategyByUuidByUser(uuid, userCookie.Uuid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	// Make sure the status has been disabed and position status is closed
+	if strategy.Enabled != 0 || contract.Status(strategy.PositionStatus) != contract.CLOSED {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "策略未暫停或訂單狀態未結束"})
+		return
+	}
+
+	// Make sure it's not tracked by engine
+	if err = ctl.notBeingTrackedByEngine(c, uuid); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Validate margin
+	margin, err := decimal.NewFromString(c.PostForm("margin"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "margin is invalid"})
+		return
+	}
+
+	// Convert params
+	var contractParams map[string]interface{}
+	switch c.PostForm("entry_type") {
+	case "trendline":
+		contractParams, err = ctl.processTrendlineContractParams(c)
+	case "limit":
+		contractParams, err = ctl.processLimitContractParams(c)
+	default:
+		err = errors.New("entry type not supported")
+	}
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Validate contract params
+	_, err = contract.NewContract(order.Side(strategy.Side), contractParams)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Update strategy
+	data := map[string]interface{}{
+		"margin":  margin,
+		"params":  datatypes.JSONMap(contractParams),
+		"comment": c.PostForm("comment"),
+	}
+	if _, err := ctl.db.UpdateContractStrategy(uuid, data); err != nil {
+		ctl.log.Println("failed to update db, err:", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{})
+	return
+}
+
+func (ctl *Controller) EditMargin(c *gin.Context) {
 	if !ctl.tokenAuthCheck(c) {
 		return
 	}
@@ -460,7 +712,7 @@ func (ctl *Controller) EditStrategy(c *gin.Context) {
 	})
 }
 
-func (ctl *Controller) UpdateStrategy(c *gin.Context) {
+func (ctl *Controller) UpdateMargin(c *gin.Context) {
 	if !ctl.tokenAuthCheck(c) {
 		return
 	}
@@ -902,16 +1154,11 @@ func (ctl *Controller) convertTrendlineContractParams(c *gin.Context) (map[strin
 	data["time_2"] = t
 
 	// trendline_offset_percent
-	percent := c.PostForm("entry[trendline_offset_percent]")
-	data["trendline_offset_percent"] = float64(0.0)
-	if percent == "" {
-		return data, errors.New("trendline_offset_percent is invalid")
-	}
-	p, err := strconv.ParseFloat(percent, 64)
+	entryPercent, err := decimal.NewFromString(c.PostForm("entry[trendline_offset_percent]"))
 	if err != nil {
 		return data, errors.New("trendline_offset_percent is invalid")
 	}
-	data["trendline_offset_percent"] = float64(int64(p/100*10000)) / 10000 // convert to percent first, then fix float64
+	data["trendline_offset_percent"], _ = entryPercent.Div(decimal.NewFromInt(100)).Float64()
 
 	// flip_operator_enabled
 	data["flip_operator_enabled"] = false
@@ -930,16 +1177,11 @@ func (ctl *Controller) convertTrendlineContractParams(c *gin.Context) (map[strin
 
 	// loss_tolerance_percent
 	if stopLossEnabled == "1" {
-		percent = c.PostForm("stop_loss[loss_tolerance_percent]")
-		data["loss_tolerance_percent"] = float64(0.0)
-		if percent == "" {
-			return data, errors.New("loss_tolerance_percent is invalid")
-		}
-		p, err = strconv.ParseFloat(percent, 64)
+		lossPercent, err := decimal.NewFromString(c.PostForm("stop_loss[loss_tolerance_percent]"))
 		if err != nil {
 			return data, errors.New("loss_tolerance_percent is invalid")
 		}
-		data["loss_tolerance_percent"] = float64(int64(p/100*10000)) / 10000 // convert to percent first, then fix float64
+		data["loss_tolerance_percent"], _ = lossPercent.Div(decimal.NewFromInt(100)).Float64()
 	}
 
 	// trendline_readjustment_enabled

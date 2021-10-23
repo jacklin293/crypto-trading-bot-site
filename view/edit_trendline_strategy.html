@@ -1,0 +1,272 @@
+{{ template "header.html" .}}
+<div class="container">
+    {{ if ne .error "" }}
+    <div class="row rounded mb-3">
+        <div class="col">
+            <div class="alert alert-danger" role="alert">
+                {{ .error }}
+            </div>
+        </div>
+    </div>
+    {{ end }}
+
+    <div class="row rounded mb-3">
+        <div class="col">
+            <form action="/strategy" method="POST" id="strategy-form">
+                <input type="hidden" name="entry_type" value="trendline"/>
+                <!-- exchange -->
+                <div class="row">
+                    <label for="exchange" class="col-3 col-form-label text-end">交易所</label>
+                    <div class="col-9">
+                        <input type="text" readonly class="form-control-plaintext" value="FTX" readonly>
+                    </div>
+                </div>
+                <!-- symbol -->
+                <div class="row mt-2">
+                    <label for="symbol" class="col-3 col-form-label text-end">合約</label>
+                    <div class="col-9 pt-1">
+                        <select class="form-select form-select-sm form-select-inline bg-light" aria-label=".form-select-sm" name="symbol" disabled>
+                            <option value="{{.strategy.Symbol}}">{{.strategy.Symbol}}</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- side -->
+                <div class="row mt-2">
+                    <label class="col-3 col-form-label text-end">方向</label>
+                    <div class="col-9 pt-2">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="side" {{if eq .strategy.Side 1}} checked {{end}} disabled>
+                            <label class="form-check-label" for="long">多</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="side" {{if eq .strategy.Side 0}} checked {{end}} disabled>
+                            <label class="form-check-label" for="short">空</label>
+                        </div>
+                    </div>
+                </div>
+                <!-- margin -->
+                <div class="row mt-2">
+                    <label for="margin" class="col-3 col-form-label text-end">保證金</label>
+                    <div class="col-9">
+                        <input type="number" step="any" class="form-control bg-light" name="margin" placeholder="e.g. 1000" value="{{.strategy.Margin}}">
+                        <div class="form-text">總可用餘額: {{.availableMargin}}</div>
+                        <div class="form-text">本金: {{.collateral}} ({{.leverage}}x)  總資金: {{.totalMargin}}</div>
+                    </div>
+                </div>
+                <!-- entry trendline -->
+                <div class="row mt-2">
+                    <div class="col">
+                        <input type="hidden" name="entry[trigger_type]" value="line"/>
+                        <div class="row">
+                            <label for="margin" class="col-3 col-form-label text-end">時間1</label>
+                            <div class="col-9">
+                                <input id="entry-time-1" class="flatpickr flatpickr-input form-control bg-light" type="text" readonly="readonly" name="entry[time_1]" placeholder="請選擇時間" value="{{.entryTime1}}">
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <label for="margin" class="col-3 col-form-label text-end">價格1</label>
+                            <div class="col-9">
+                                <input type="number" step="any" class="form-control bg-light" name="entry[price_1]" placeholder="e.g. 45000" value="{{.entryPrice1}}">
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <label for="margin" class="col-3 col-form-label text-end">時間2</label>
+                            <div class="col-9">
+                                <input id="entry-time-2" class="flatpickr flatpickr-input form-control bg-light" type="text" readonly="readonly" name="entry[time_2]" placeholder="需晚於時間1" value="{{.entryTime2}}">
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <label for="margin" class="col-3 col-form-label text-end">價格2</label>
+                            <div class="col-9">
+                                <input type="number" step="any" class="form-control bg-light" name="entry[price_2]" placeholder="e.g. 47000" value="{{.entryPrice2}}">
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <label class="col-3 col-form-label text-end">當標價</label>
+                            <div class="col-3 pt-1">
+                                <select class="form-select form-select-sm form-select-inline bg-light" aria-label=".form-select-sm" name="entry[operator]">
+                                    <option value=">=" {{if eq .entryOperator ">="}} selected {{end}}>>=</option>
+                                    <option value="<=" {{if eq .entryOperator "<="}} selected {{end}}><=</option>
+                                </select>
+                            </div>
+                            <div class="col-3">
+                                <input type="number" step="any" class="form-control bg-light" name="entry[trendline_offset_percent]" placeholder="e.g. 1" value="{{.entryOffsetPercent}}">
+                            </div>
+                            <label class="col-3 col-form-label">% 開倉</label>
+                        </div>
+                        <div class="row mt-2">
+                            <label class="col-3 col-form-label text-end">開倉後</label>
+                            <div class="col-9">
+                                <label class="col-form-label text-end">自動調整Operator</label>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="entry[flip_operator_enabled]" value="1" id="flip-enabled" {{if .entryFlipEnabled}} checked {{end}}>
+                                    <label class="form-check-label" for="flip-enabled">開</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="entry[flip_operator_enabled]" value="0" id="flip-disabled" {{if not .entryFlipEnabled}} checked {{end}}>
+                                    <label class="form-check-label" for="flip-disabled">關</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- stop loss -->
+                <div class="row mt-2">
+                    <label class="col-3 col-form-label text-end">停損</label>
+                    <div class="col-9 pt-2">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="stop_loss[enabled]" value="1" id="stop-loss-enabled" {{if .slEnabled }} checked {{end}}>
+                            <label class="form-check-label" for="stop-loss-enabled">設定</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="stop_loss[enabled]" id="stop-loss-disabled" value="0" {{if not .slEnabled }} checked {{end}}>
+                            <label class="form-check-label" for="stop-loss-disabled">不設定</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-2 {{if not .slEnabled }} d-none {{end}}" id="stop-loss-settings">
+                    <div class="col">
+                        <div class="row">
+                            <label class="col-3 col-form-label text-end">開倉價</label>
+                            <div class="col-3">
+                                <input type="number" step="any" class="form-control bg-light" name="stop_loss[loss_tolerance_percent]" placeholder="e.g. 1" {{if ne .slLossPercent "0"}} value="{{.slLossPercent}}"{{end}}>
+                            </div>
+                            <label class="col-6 col-form-label">% 停損</label>
+                        </div>
+                        <div class="row mt-2">
+                            <label class="col-3 col-form-label text-end">停損後</label>
+                            <div class="col-9">
+                                <label class="col-form-label text-end">自動調整趨勢線</label>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="stop_loss[trendline_readjustment_enabled]" value="1" id="readjustment-enabled" {{if .slReadjustmentEnabled}} checked {{end}}>
+                                    <label class="form-check-label" for="readjustment-enabled">開</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="stop_loss[trendline_readjustment_enabled]" id="readjustment-disabled" value="0" {{if not .slReadjustmentEnabled}} checked {{end}}>
+                                    <label class="form-check-label" for="readjustment-disabled">關</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- take profit -->
+                <div class="row mt-2">
+                    <label class="col-3 col-form-label text-end">停利</label>
+                    <div class="col-9 pt-2">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="take_profit[enabled]" value="1" id="take-profit-enabled" {{if .tpEnabled }} checked {{end}}>
+                            <label class="form-check-label" for="take-profit-enabled">設定</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="take_profit[enabled]" id="take-profit-disabled" value="0" {{if not .tpEnabled }} checked {{end}}>
+                            <label class="form-check-label" for="take-profit-disabled">不設定</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-2 {{if not .tpEnabled }} d-none {{end}}" id="take-profit-settings">
+                    <input type="hidden" name="take_profit[trigger_type]" value="limit"/>
+                    <label class="col-3 col-form-label text-end">當標價</label>
+                    <div class="col-3 pt-1">
+                        <select class="form-select form-select-sm form-select-inline bg-light" aria-label=".form-select-sm" name="take_profit[operator]">
+                            <option value=">=" {{if eq .tpOperator ">="}} selected {{end}}>>=</option>
+                            <option value="<=" {{if eq .tpOperator "<="}} selected {{end}}><=</option>
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        <input type="number" step="any" class="form-control bg-light" name="take_profit[price]" placeholder="e.g. 57000" value="{{.tpPrice}}">
+                    </div>
+                    <label class="col-2 col-form-label">停利</label>
+                </div>
+                <div class="row mt-2">
+                    <label class="col-3 col-form-label text-end" for="comment">備註</label>
+                    <div class="col-9 pt-2">
+                        <textarea class="form-control" id="comment" rows="2" placeholder="(選填,需少於100個字元)" name="comment">{{.strategy.Comment}}</textarea>
+                    </div>
+                </div>
+                <!-- submit -->
+                <div class="row mt-2">
+                    <div class="col-3 mx-auto">
+                        <button type="submit" id="submit-button" class="btn btn-primary">送出</button>
+                        <div id="submit-loading" class="spinner-border text-primary d-none ms-3" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{{ template "footer.html" .}}
+<link href="/assets/datetimepicker/flatpickr.css" rel="stylesheet">
+<script src="/assets/datetimepicker/flatpickr.js"></script>
+<script>
+$( document ).ready(function() {
+    $("#strategy-form").on("submit", function(event){
+        event.preventDefault();
+
+        // loading
+        $('#submit-button').addClass('d-none');
+        $('#submit-loading').removeClass('d-none');
+
+        // submit
+        $.ajax({
+            type: 'PATCH',
+            url: '/strategy/{{.strategy.Uuid}}',
+            data: $(this).serialize(),
+            success: function() {
+                location.href = "/?success=strategy_updated";
+            }
+        }).fail(function(data) {
+            alert(data.responseJSON.error);
+        });
+
+        // free loading
+        $('#submit-button').removeClass('d-none');
+        $('#submit-loading').addClass('d-none');
+    });
+
+    // datetime picker
+    $("#entry-time-1").flatpickr({
+        enableTime: true,
+        dateFormat: "Y-m-d H:i"
+    });
+    $("#entry-time-2").flatpickr({
+        enableTime: true,
+        dateFormat: "Y-m-d H:i"
+    });
+
+    // stop-loss
+    $("input[name='stop_loss[enabled]']").click(function() {
+        var checked = $("input[name='stop_loss[enabled]']:checked").val();
+        if (checked === "1") {
+            $('#stop-loss-settings').removeClass("d-none");
+        } else {
+            $('#stop-loss-settings').addClass("d-none");
+        }
+    });
+
+    // Only one of flip_operator_enabled or trendline_readjustment_enabled can be true
+    $("input[name='entry[flip_operator_enabled]']").click(function() {
+        var checked = $("input[name='entry[flip_operator_enabled]']:checked").val();
+        if (checked === "1") {
+            $("#readjustment-disabled").prop('checked', true);
+        }
+    });
+    $("input[name='stop_loss[trendline_readjustment_enabled]']").click(function() {
+        var checked = $("input[name='stop_loss[trendline_readjustment_enabled]']:checked").val();
+        if (checked === "1") {
+            $("#flip-disabled").prop('checked', true);
+        }
+    });
+
+    // take-profit
+    $("input[name='take_profit[enabled]']").click(function() {
+        var checked = $("input[name='take_profit[enabled]']:checked").val();
+        if (checked === "1") {
+            $('#take-profit-settings').removeClass("d-none");
+        } else {
+            $('#take-profit-settings').addClass("d-none");
+        }
+    });
+});
+</script>
