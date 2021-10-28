@@ -223,12 +223,20 @@ $( document ).ready(function() {
 
     // datetime picker
     $("#entry-time-1").flatpickr({
+        time_24hr: true,
         enableTime: true,
-        dateFormat: "Y-m-d H:i"
+        dateFormat: "Y-m-d H:i",
+        defaultDate: "today",
+        defaultHour: 0,
+        defaultMinute: 0
     });
     $("#entry-time-2").flatpickr({
+        time_24hr: true,
         enableTime: true,
-        dateFormat: "Y-m-d H:i"
+        dateFormat: "Y-m-d H:i",
+        defaultDate: "today",
+        defaultHour: 0,
+        defaultMinute: 0
     });
 
     // stop-loss
