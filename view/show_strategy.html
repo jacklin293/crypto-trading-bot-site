@@ -351,8 +351,7 @@
 {{ template "footer.html" .}}
 <script>
 $( document ).ready(function() {
-    var params = JSON.parse(unescape($('#contract-params').text()));
-    $('#contract-params').html("<pre>" + JSON.stringify(params, null, 4) + "</pre>");
+    // Make orders details more readible in json format
     if ($('#orders-details').text() != "") {
         var orders = JSON.parse(unescape($('#orders-details').text()));
         $('#orders-details').html("<pre>" + JSON.stringify(orders, null, 4) + "</pre>");
