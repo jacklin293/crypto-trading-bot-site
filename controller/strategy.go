@@ -327,9 +327,12 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 		errMsg = fmt.Sprintf("%s API server 無回應或 API Key 已失效", viper.GetString("DEFAULT_EXCHANGE"))
 	}
 
-	leverage := ""
+	var collateral, leverage, totalMargin, availableMargin decimal.Decimal
 	if len(accountInfo) > 0 {
-		leverage = strategy.Margin.Div(accountInfo["collateral"].(decimal.Decimal)).StringFixed(1)
+		leverage = strategy.Margin.Div(accountInfo["collateral"].(decimal.Decimal))
+		collateral = accountInfo["collateral"].(decimal.Decimal)
+		totalMargin = collateral.Mul(leverage)
+		availableMargin = accountInfo["free_collateral"].(decimal.Decimal).Mul(leverage)
 	}
 
 	params, err := json.Marshal(strategy.Params)
@@ -362,20 +365,99 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 		comment = strategy.Comment
 	}
 
-	c.HTML(http.StatusOK, "show_strategy.html", gin.H{
-		"error":          errMsg,
-		"loggedIn":       true,
-		"role":           userCookie.Role,
-		"strategy":       strategy,
-		"margin":         ac.FormatMoneyDecimal(strategy.Margin),
-		"leverage":       leverage,
-		"params":         string(params),
-		"comment":        comment,
-		"ordersDetails":  ordersDetails,
-		"lastPositionAt": lastPositionAt,
-		"createdAt":      strategy.CreatedAt.Format("2006-01-02 15:04:05"),
-		"updatedAt":      strategy.UpdatedAt.Format("2006-01-02 15:04:05"),
-	})
+	// Convert params
+	contract, err := contract.NewContract(order.Side(strategy.Side), strategy.Params)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Internal error, err: %v", err.Error())})
+		return
+	}
+
+	var slEnabled, tpEnabled, slReadjustmentEnabled bool
+	var slLossPercent float64
+	var slOperator, tpOperator, slPrice, tpPrice string
+
+	if contract.EntryType == order.ENTRY_TRENDLINE {
+		// trendline
+		if contract.StopLossOrder != nil {
+			slEnabled = true
+			slReadjustmentEnabled = contract.StopLossOrder.(*order.StopLoss).TrendlineReadjustmentEnabled
+			slLossPercent = contract.StopLossOrder.(*order.StopLoss).LossTolerancePercent
+		}
+		if contract.TakeProfitOrder != nil {
+			tpEnabled = true
+			trigger := contract.TakeProfitOrder.GetTrigger()
+			if trigger != nil {
+				tpOperator = trigger.GetOperator()
+				tpPrice = trigger.GetPrice(time.Now()).String()
+			}
+		}
+	} else if contract.EntryType == order.ENTRY_LIMIT {
+		// limit
+		if contract.StopLossOrder != nil {
+			slEnabled = true
+			trigger := contract.StopLossOrder.GetTrigger()
+			if trigger != nil {
+				slOperator = trigger.GetOperator()
+				slPrice = trigger.GetPrice(time.Now()).String()
+			}
+		}
+		if contract.TakeProfitOrder != nil {
+			tpEnabled = true
+			trigger := contract.TakeProfitOrder.GetTrigger()
+			if trigger != nil {
+				tpOperator = trigger.GetOperator()
+				tpPrice = trigger.GetPrice(time.Now()).String()
+			}
+		}
+	}
+
+	data := gin.H{
+		"error":           errMsg,
+		"loggedIn":        true,
+		"role":            userCookie.Role,
+		"strategy":        strategy,
+		"margin":          ac.FormatMoneyDecimal(strategy.Margin),
+		"leverage":        leverage.StringFixed(1),
+		"collateral":      collateral.StringFixed(1),
+		"totalMargin":     totalMargin.StringFixed(1),
+		"availableMargin": availableMargin.StringFixed(1),
+		"comment":         comment,
+		"ordersDetails":   ordersDetails,
+		"lastPositionAt":  lastPositionAt,
+		"createdAt":       strategy.CreatedAt.Format("2006-01-02 15:04:05"),
+		"updatedAt":       strategy.UpdatedAt.Format("2006-01-02 15:04:05"),
+
+		// contract
+		"entryType": contract.EntryType,
+
+		// shared params
+		"slEnabled":  slEnabled,
+		"slOperator": slOperator,
+		"slPrice":    slPrice,
+		"tpEnabled":  tpEnabled,
+		"tpOperator": tpOperator,
+		"tpPrice":    tpPrice,
+	}
+
+	// trendline params
+	if contract.EntryType == order.ENTRY_TRENDLINE {
+		data["entryPrice1"] = contract.EntryOrder.(*order.Entry).TrendlineTrigger.(*trigger.Line).Price1
+		data["entryTime1"] = contract.EntryOrder.(*order.Entry).TrendlineTrigger.(*trigger.Line).Time1.Format("2006-01-02 15:04")
+		data["entryPrice2"] = contract.EntryOrder.(*order.Entry).TrendlineTrigger.(*trigger.Line).Price2
+		data["entryTime2"] = contract.EntryOrder.(*order.Entry).TrendlineTrigger.(*trigger.Line).Time2.Format("2006-01-02 15:04")
+		data["entryOperator"] = contract.EntryOrder.(*order.Entry).TrendlineTrigger.GetOperator()
+		data["entryFlipEnabled"] = contract.EntryOrder.(*order.Entry).FlipOperatorEnabled
+		data["entryOffsetPercent"] = decimal.NewFromFloat(contract.EntryOrder.(*order.Entry).TrendlineOffsetPercent).Mul(decimal.NewFromInt(100)).String()
+		data["slLossPercent"] = decimal.NewFromFloat(slLossPercent).Mul(decimal.NewFromInt(100)).String()
+		data["slReadjustmentEnabled"] = slReadjustmentEnabled
+	}
+
+	// limit  params
+	if contract.EntryType == order.ENTRY_LIMIT {
+		data["entryPrice"] = contract.EntryOrder.GetTrigger().GetPrice(time.Now()).String()
+	}
+
+	c.HTML(http.StatusOK, "show_strategy.html", data)
 }
 
 func (ctl *Controller) DeleteStrategy(c *gin.Context) {

@@ -11,48 +11,7 @@
     {{ end }}
     <div class="row rounded mb-3">
         <div class="col">
-            <div class="row">
-                <div class="col-3 text-end">UUID</div>
-                <div class="col-9">{{.strategy.Uuid}}</div>
-            </div>
-            <div class="row">
-                <div class="col-3 text-end">交易所</div>
-                <div class="col-9">{{.strategy.Exchange}}</div>
-            </div>
-            <div class="row">
-                <div class="col-3 text-end">合約</div>
-                <div class="col-9">{{.strategy.Symbol}}</div>
-            </div>
-            <div class="row">
-                <div class="col-3 text-end">方向</div>
-                <div class="col-9">
-                    {{if eq .strategy.Side 1}}
-                    <span class="badge bg-success">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="bi bi-graph-up" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5z"/>
-                        </svg>
-                        <!-- leverage -->
-                        {{ if ne .leverage "" }}
-                        <span class="align-middle">{{$.leverage}}x</span>
-                        {{ end }}
-                    </span>
-                    {{else if eq .strategy.Side 0 }}
-                    <span class="badge bg-danger">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="bi bi-graph-down" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0zm10 11.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-1 0v2.6l-3.613-4.417a.5.5 0 0 0-.74-.037L7.06 8.233 3.404 3.206a.5.5 0 0 0-.808.588l4 5.5a.5.5 0 0 0 .758.06l2.609-2.61L13.445 11H10.5a.5.5 0 0 0-.5.5z"/>
-                        </svg>
-                        <!-- leverage -->
-                        {{ if ne .leverage "" }}
-                        <span class="align-middle">{{$.leverage}}x</span>
-                        {{ end }}
-                    </span>
-                    {{end}}
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-3 text-end">保證金</div>
-                <div class="col-9">{{printf "%.10s" .margin}}</div>
-            </div>
+            <!-- status -->
             <div class="row">
                 <div class="col-3 text-end">開啟狀態</div>
                 <div class="col-9">
@@ -67,9 +26,10 @@
                     {{end}}
                 </div>
             </div>
-            <div class="row">
+            <div class="row mt-2">
                 <div class="col-3 text-end">訂單狀態</div>
                 <div class="col-9">
+                    <small class="text-muted align-middle">
                     {{if eq .strategy.PositionStatus 2}}
                         狀態未知,請重置
                     {{else if eq .strategy.PositionStatus 1 }}
@@ -77,46 +37,312 @@
                     {{else if eq .strategy.PositionStatus 0 }}
                         未觸發
                     {{end}}
+                    </small>
                 </div>
             </div>
-            <div class="row">
-                <div class="col-3 text-end">開倉時間</div>
-                <div class="col-9">{{.lastPositionAt}}</div>
+            <!-- exchange -->
+            <div class="row mt-2">
+                <label for="exchange" class="col-3 col-form-label text-end">交易所</label>
+                <div class="col-9">
+                    <input type="text" class="form-control-plaintext" value="{{.strategy.Exchange}}" readonly>
+                </div>
             </div>
-            <div class="row">
-                <div class="col-3 text-end">建立時間</div>
-                <div class="col-9">{{.createdAt}}</div>
+            <!-- symbol -->
+            <div class="row mt-2">
+                <label for="symbol" class="col-3 col-form-label text-end">合約</label>
+                <div class="col-9 pt-1">
+                    <select class="form-select form-select-sm form-select-inline bg-light" aria-label=".form-select-sm" name="symbol" disabled>
+                        <option value="{{.strategy.Symbol}}">{{.strategy.Symbol}}</option>
+                    </select>
+                </div>
             </div>
-            <div class="row">
-                <div class="col-3 text-end">最後更新</div>
-                <div class="col-9">{{.updatedAt}}</div>
+            <!-- side -->
+            <div class="row mt-2">
+                <label class="col-3 col-form-label text-end">方向</label>
+                <div class="col-9 pt-2">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="side" {{if eq .strategy.Side 1}} checked {{end}} disabled>
+                        <label class="form-check-label" for="long">多</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="side" {{if eq .strategy.Side 0}} checked {{end}} disabled>
+                        <label class="form-check-label" for="short">空</label>
+                    </div>
+                    <div class="form-text">
+                        {{if eq .strategy.Side 1}}
+                        <span class="badge bg-success">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="bi bi-graph-up" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5z"/>
+                            </svg>
+                            <!-- leverage -->
+                            {{ if ne .leverage "" }}
+                            <span class="align-middle">{{$.leverage}}x</span>
+                            {{ end }}
+                        </span>
+                        {{else if eq .strategy.Side 0 }}
+                        <span class="badge bg-danger">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="bi bi-graph-down" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0V0zm10 11.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 0-1 0v2.6l-3.613-4.417a.5.5 0 0 0-.74-.037L7.06 8.233 3.404 3.206a.5.5 0 0 0-.808.588l4 5.5a.5.5 0 0 0 .758.06l2.609-2.61L13.445 11H10.5a.5.5 0 0 0-.5.5z"/>
+                            </svg>
+                            <!-- leverage -->
+                            {{ if ne .leverage "" }}
+                            <span class="align-middle">{{$.leverage}}x</span>
+                            {{ end }}
+                        </span>
+                        {{end}}
+                    </div>
+                </div>
             </div>
-            <div class="row">
+            <!-- margin -->
+            <div class="row mt-2">
+                <label for="margin" class="col-3 col-form-label text-end">保證金</label>
+                <div class="col-9">
+                    <input type="number" step="any" class="form-control bg-light" name="margin" placeholder="e.g. 1000" value="{{.strategy.Margin}}" readonly>
+                    <div class="form-text">總可用餘額: {{.availableMargin}}</div>
+                    <div class="form-text">本金: {{.collateral}} ({{.leverage}}x)  總資金: {{.totalMargin}}</div>
+                </div>
+            </div>
+
+            {{ if eq .entryType "trendline" }}
+            <!-- trendline entry -->
+            <div class="row mt-2">
+                <div class="col">
+                    <input type="hidden" name="entry[trigger_type]" value="line"/>
+                    <div class="row">
+                        <label for="margin" class="col-3 col-form-label text-end">時間1</label>
+                        <div class="col-9">
+                            <input id="entry-time-1" class="flatpickr flatpickr-input form-control bg-light" type="text" readonly="readonly" name="entry[time_1]" placeholder="請選擇時間" value="{{.entryTime1}}" readonly>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <label for="margin" class="col-3 col-form-label text-end">價格1</label>
+                        <div class="col-9">
+                            <input type="number" step="any" class="form-control bg-light" name="entry[price_1]" placeholder="e.g. 45000" value="{{.entryPrice1}}" readonly>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <label for="margin" class="col-3 col-form-label text-end">時間2</label>
+                        <div class="col-9">
+                            <input id="entry-time-2" class="flatpickr flatpickr-input form-control bg-light" type="text" readonly="readonly" name="entry[time_2]" placeholder="需晚於時間1" value="{{.entryTime2}}" readonly>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <label for="margin" class="col-3 col-form-label text-end">價格2</label>
+                        <div class="col-9">
+                            <input type="number" step="any" class="form-control bg-light" name="entry[price_2]" placeholder="e.g. 47000" value="{{.entryPrice2}}" readonly>
+                        </div>
+                    </div>
+                    <div class="row mt-2">
+                        <label class="col-3 col-form-label text-end">當標價</label>
+                        <div class="col-3 pt-1">
+                            <select class="form-select form-select-sm form-select-inline bg-light" aria-label=".form-select-sm" name="entry[operator]" disabled>
+                                <option value=">=" {{if eq .entryOperator ">="}} selected {{end}}>>=</option>
+                                <option value="<=" {{if eq .entryOperator "<="}} selected {{end}}><=</option>
+                            </select>
+                        </div>
+                        <div class="col-3">
+                            <input type="number" step="any" class="form-control bg-light" name="entry[trendline_offset_percent]" placeholder="e.g. 1" value="{{.entryOffsetPercent}}" readonly>
+                        </div>
+                        <label class="col-3 col-form-label">% 開倉</label>
+                    </div>
+                    <div class="row mt-2">
+                        <label class="col-3 col-form-label text-end">開倉後</label>
+                        <div class="col-9">
+                            <label class="col-form-label text-end">自動調整Operator</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="entry[flip_operator_enabled]" value="1" id="flip-enabled" {{if .entryFlipEnabled}} checked {{end}} disabled>
+                                <label class="form-check-label" for="flip-enabled">開</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="entry[flip_operator_enabled]" value="0" id="flip-disabled" {{if not .entryFlipEnabled}} checked {{end}} disabled>
+                                <label class="form-check-label" for="flip-disabled">關</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- trendline stop-loss -->
+            <div class="row mt-2">
+                <label class="col-3 col-form-label text-end">停損</label>
+                <div class="col-9 pt-2">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="stop_loss[enabled]" value="1" id="stop-loss-enabled" {{if .slEnabled }} checked {{end}} disabled>
+                        <label class="form-check-label" for="stop-loss-enabled">設定</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="stop_loss[enabled]" id="stop-loss-disabled" value="0" {{if not .slEnabled }} checked {{end}} disabled>
+                        <label class="form-check-label" for="stop-loss-disabled">不設定</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-2 {{if not .slEnabled }} d-none {{end}}" id="stop-loss-settings">
+                <div class="col">
+                    <div class="row">
+                        <label class="col-3 col-form-label text-end">開倉價</label>
+                        <div class="col-3">
+                            <input type="number" step="any" class="form-control bg-light" name="stop_loss[loss_tolerance_percent]" placeholder="e.g. 1" {{if ne .slLossPercent "0"}} value="{{.slLossPercent}}"{{end}} readonly>
+                        </div>
+                        <label class="col-6 col-form-label">% 停損</label>
+                    </div>
+                    <div class="row mt-2">
+                        <label class="col-3 col-form-label text-end">停損後</label>
+                        <div class="col-9">
+                            <label class="col-form-label text-end">自動調整趨勢線</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="stop_loss[trendline_readjustment_enabled]" value="1" id="readjustment-enabled" {{if .slReadjustmentEnabled}} checked {{end}} disabled>
+                                <label class="form-check-label" for="readjustment-enabled">開</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="stop_loss[trendline_readjustment_enabled]" id="readjustment-disabled" value="0" {{if not .slReadjustmentEnabled}} checked {{end}} disabled>
+                                <label class="form-check-label" for="readjustment-disabled">關</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{end}}
+
+            {{ if eq .entryType "limit" }}
+            <!-- limit entry -->
+            <div class="row mt-2">
+                <div class="col">
+                    <input type="hidden" name="entry[trigger_type]" value="limit"/>
+                    <div class="row">
+                        <label class="col-3 col-form-label text-end">當標價</label>
+                        <div class="col-3 pt-1">
+                            <select class="form-select form-select-sm form-select-inline bg-light" aria-label=".form-select-sm" name="entry[operator]" disabled>
+                                <option value=">=" {{if eq .entryOperator ">="}} selected {{end}}>>=</option>
+                                <option value="<=" {{if eq .entryOperator "<="}} selected {{end}}><=</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <input type="number" step="any" class="form-control bg-light" name="entry[price]" placeholder="e.g. 57000" value="{{.entryPrice}}" readonly>
+                        </div>
+                        <label class="col-2 col-form-label">開倉</label>
+                    </div>
+                    <div class="row mt-2">
+                        <label class="col-3 col-form-label text-end">開倉後</label>
+                        <div class="col-9">
+                            <label class="col-form-label text-end">自動調整Operator</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="entry[flip_operator_enabled]" value="1" id="flip-enabled" {{if .entryFlipEnabled}} checked {{end}} disabled>
+                                <label class="form-check-label" for="flip-enabled">開</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="entry[flip_operator_enabled]" value="0" id="flip-disabled" {{if not .entryFlipEnabled}} checked {{end}} disabled>
+                                <label class="form-check-label" for="flip-disabled">關</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- entry stop-loss -->
+            <div class="row mt-2">
+                <label class="col-3 col-form-label text-end">停損</label>
+                <div class="col-9 pt-2">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="stop_loss[enabled]" value="1" id="stop-loss-enabled" {{if .slEnabled }} checked {{end}} disabled>
+                        <label class="form-check-label" for="stop-loss-enabled">設定</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="stop_loss[enabled]" id="stop-loss-disabled" value="0" {{if not .slEnabled }} checked {{end}} disabled>
+                        <label class="form-check-label" for="stop-loss-disabled">不設定</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-2 {{if not .slEnabled }} d-none {{end}}" id="stop-loss-settings">
+                <input type="hidden" name="stop_loss[trigger_type]" value="limit"/>
+                <label class="col-3 col-form-label text-end">當標價</label>
+                <div class="col-3 pt-1">
+                    <select class="form-select form-select-sm form-select-inline bg-light" aria-label=".form-select-sm" name="stop_loss[operator]" disabled>
+                        <option value=">=" {{if eq .slOperator ">="}} selected {{end}}>>=</option>
+                        <option value="<=" {{if eq .slOperator "<="}} selected {{end}}><=</option>
+                    </select>
+                </div>
+                <div class="col-4">
+                    <input type="number" step="any" class="form-control bg-light" name="stop_loss[price]" placeholder="e.g. 57000" value="{{.slPrice}}" readonly>
+                </div>
+                <label class="col-2 col-form-label">停損</label>
+            </div>
+            {{ end }}
+
+            <!-- shared take profit -->
+            <div class="row mt-2">
+                <label class="col-3 col-form-label text-end">停利</label>
+                <div class="col-9 pt-2">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="take_profit[enabled]" value="1" id="take-profit-enabled" {{if .tpEnabled }} checked {{end}} disabled>
+                        <label class="form-check-label" for="take-profit-enabled">設定</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="take_profit[enabled]" id="take-profit-disabled" value="0" {{if not .tpEnabled }} checked {{end}} disabled>
+                        <label class="form-check-label" for="take-profit-disabled">不設定</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-2 {{if not .tpEnabled }} d-none {{end}}" id="take-profit-settings">
+                <input type="hidden" name="take_profit[trigger_type]" value="limit"/>
+                <label class="col-3 col-form-label text-end">當標價</label>
+                <div class="col-3 pt-1">
+                    <select class="form-select form-select-sm form-select-inline bg-light" aria-label=".form-select-sm" name="take_profit[operator]" disabled>
+                        <option value=">=" {{if eq .tpOperator ">="}} selected {{end}}>>=</option>
+                        <option value="<=" {{if eq .tpOperator "<="}} selected {{end}}><=</option>
+                    </select>
+                </div>
+                <div class="col-4">
+                    <input type="number" step="any" class="form-control bg-light" name="take_profit[price]" placeholder="e.g. 57000" value="{{.tpPrice}}" readonly>
+                </div>
+                <label class="col-2 col-form-label">停利</label>
+            </div>
+            <!-- comment -->
+            <div class="row mt-2">
                 <div class="col-3 text-end">備註</div>
                 <div class="col-9">
-                    <div class="mb-3">
+                    <div>
                         <textarea class="form-control" rows="2" readonly>{{.comment}}</textarea>
                     </div>
                 </div>
             </div>
-            <div class="row">
-                <div class="col-3 text-end">策略參數</div>
-                <div class="col-9">
-                    <div class="mb-3">
-                        <div class="form-control" id="contract-params" readonly>{{.params}}</div>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
+            <div class="row mt-2">
                 <div class="col-3 text-end">訂單細節</div>
                 <div class="col-9">
-                    <div class="mb-3">
+                    <div>
                         {{ if ne .ordersDetails "" }}
                             <div class="form-control" id="orders-details" readonly>{{.ordersDetails}}</div>
                         {{ else }}
                             <div class="form-control" readonly>(無)</div>
                         {{ end }}
                     </div>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-3 text-end">開倉時間</div>
+                <div class="col-9">
+                    <small class="text-muted align-middle">
+                    {{.lastPositionAt}}
+                    </small>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-3 text-end">建立時間</div>
+                <div class="col-9">
+                    <small class="text-muted align-middle">
+                    {{.createdAt}}
+                    </small>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-3 text-end">最後更新</div>
+                <div class="col-9">
+                    <small class="text-muted align-middle">
+                    {{.updatedAt}}
+                    </small>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-3 text-end">UUID</div>
+                <div class="col-9">
+                    <small class="text-muted align-middle">{{.strategy.Uuid}}</small>
                 </div>
             </div>
         </div>
