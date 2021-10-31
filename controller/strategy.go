@@ -455,6 +455,8 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 	// limit  params
 	if contract.EntryType == order.ENTRY_LIMIT {
 		data["entryPrice"] = contract.EntryOrder.GetTrigger().GetPrice(time.Now()).String()
+		data["entryOperator"] = contract.EntryOrder.GetTrigger().GetOperator()
+		data["entryFlipEnabled"] = contract.EntryOrder.(*order.Entry).FlipOperatorEnabled
 	}
 
 	c.HTML(http.StatusOK, "show_strategy.html", data)
