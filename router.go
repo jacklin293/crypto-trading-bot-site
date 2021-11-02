@@ -45,6 +45,7 @@ func setRouter(r *gin.Engine, c *controller.Controller) {
 	r.PATCH("/strategy/:uuid", c.UpdateStrategy)
 	r.GET("/strategy/:uuid/tpsl/edit", c.EditTpSl)
 	r.PATCH("/strategy/:uuid/tpsl", c.UpdateTpSl)
+	r.PATCH("/strategy/:uuid/orders_details", c.UpdateOrdersDetails)
 
 	// Action
 	r.GET("/action/enable_strategy/:uuid", c.EnableStrategy)

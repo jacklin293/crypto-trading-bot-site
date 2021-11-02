@@ -310,6 +310,7 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 	userCookie := ctl.getUserData(c)
 	uuid := c.Param("uuid")
 	errMsg := ""
+	success := c.Query("success")
 
 	// Check permission
 	strategy, err := ctl.db.GetContractStrategyByUuidByUser(uuid, userCookie.Uuid)
@@ -329,8 +330,8 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 
 	var collateral, leverage, totalMargin, availableMargin decimal.Decimal
 	if len(accountInfo) > 0 {
-		leverage = strategy.Margin.Div(accountInfo["collateral"].(decimal.Decimal))
 		collateral = accountInfo["collateral"].(decimal.Decimal)
+		leverage = accountInfo["leverage"].(decimal.Decimal)
 		totalMargin = collateral.Mul(leverage)
 		availableMargin = accountInfo["free_collateral"].(decimal.Decimal).Mul(leverage)
 	}
@@ -412,13 +413,14 @@ func (ctl *Controller) ShowStrategy(c *gin.Context) {
 	}
 
 	data := gin.H{
+		"success":         success,
 		"error":           errMsg,
 		"loggedIn":        true,
 		"role":            userCookie.Role,
 		"strategy":        strategy,
 		"margin":          ac.FormatMoneyDecimal(strategy.Margin),
-		"leverage":        leverage.StringFixed(1),
 		"collateral":      collateral.StringFixed(1),
+		"leverage":        leverage.StringFixed(0),
 		"totalMargin":     totalMargin.StringFixed(1),
 		"availableMargin": availableMargin.StringFixed(1),
 		"comment":         comment,
@@ -972,6 +974,66 @@ func (ctl *Controller) UpdateTpSl(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
 		return
 	}
+
+	c.JSON(http.StatusOK, gin.H{})
+}
+
+// NOTE This endpoint isn't ready as there is a bug in the SDK which can't fetch correct price from position
+func (ctl *Controller) UpdateOrdersDetails(c *gin.Context) {
+	if !ctl.tokenAuthCheck(c) {
+		return
+	}
+
+	userCookie := ctl.getUserData(c)
+	uuid := c.Param("uuid")
+
+	// Check permission
+	strategy, err := ctl.db.GetContractStrategyByUuidByUser(uuid, userCookie.Uuid)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Permission denied"})
+		return
+	}
+
+	// Make sure the status has been disabed and position status is closed
+	if strategy.Enabled != 0 || contract.Status(strategy.PositionStatus) == contract.UNKNOWN {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "策略未暫停或訂單狀態未知"})
+		return
+	}
+
+	// Make sure it's not tracked by engine
+	if err = ctl.notBeingTrackedByEngine(c, uuid); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// New exchange
+	ex, err := ctl.newExchange(c)
+	if err != nil {
+		return
+	}
+
+	// Get position
+	position, err := ex.GetPosition(strategy.Symbol)
+	if err != nil {
+		ctl.log.Printf("updateStopLossOrder - failed to get position, err: %v", err)
+		err = fmt.Errorf("%s server error: '%s'", strategy.Exchange, err.Error())
+		return
+	}
+
+	// Update exchagne orders details
+	details := strategy.ExchangeOrdersDetails
+	details["entry_order"].(map[string]interface{})["price"] = position["entry_price"].(string) // The entry_price returned is Mark price instead of entry price
+	details["entry_order"].(map[string]interface{})["size"] = position["size"].(string)
+	// data := map[string]interface{}{
+	//	"exchange_orders_details": details,
+	// }
+	/*
+		if _, err := ctl.db.UpdateContractStrategy(uuid, data); err != nil {
+			ctl.log.Println("failed to update db, err:", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Internal error"})
+			return
+		}
+	*/
 
 	c.JSON(http.StatusOK, gin.H{})
 }
