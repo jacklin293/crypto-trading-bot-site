@@ -1263,6 +1263,9 @@ func (ctl *Controller) cancelStopLossOrder(ex exchange.Exchanger, strategy *db.C
 	orderId := int64(slOrderDetails["order_id"].(float64))
 	err = ex.CancelStopLossOrder(orderId)
 	if err != nil {
+		if strings.Contains(err.Error(), "Order already closed") {
+			return nil
+		}
 		ctl.log.Printf("cancelStopLossOrder - failed to cancel stop-loss order, err: %v", err)
 		err = fmt.Errorf("%s server error: '%s'", strategy.Exchange, err.Error())
 	}
@@ -1271,13 +1274,7 @@ func (ctl *Controller) cancelStopLossOrder(ex exchange.Exchanger, strategy *db.C
 
 func (ctl *Controller) updateStopLossOrder(ex exchange.Exchanger, strategy *db.ContractStrategy, price decimal.Decimal) (orderId int64, err error) {
 	// Get size
-	position, err := ex.GetPosition(strategy.Symbol)
-	if err != nil {
-		ctl.log.Printf("updateStopLossOrder - failed to get position, err: %v", err)
-		err = fmt.Errorf("%s server error: '%s'", strategy.Exchange, err.Error())
-		return
-	}
-	size, err := decimal.NewFromString(position["size"].(string))
+	size, err := decimal.NewFromString(strategy.ExchangeOrdersDetails["entry_order"].(map[string]interface{})["size"].(string))
 	if err != nil {
 		ctl.log.Printf("updateStopLossOrder - failed to get size from position, err: %v", err)
 		err = errors.New("Internal error")

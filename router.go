@@ -51,6 +51,7 @@ func setRouter(r *gin.Engine, c *controller.Controller) {
 	r.GET("/action/enable_strategy/:uuid", c.EnableStrategy)
 	r.GET("/action/disable_strategy/:uuid", c.DisableStrategy)
 	r.GET("/action/reset_strategy/:uuid", c.ResetStrategy)
-	r.GET("/action/share_strategy/:uuid", c.ShareStrategy) // TODO
 	r.GET("/action/close_position/:uuid", c.ClosePosition)
+	// TODO
+	r.GET("/action/share_strategy/:uuid", c.ShareStrategy)
 }
