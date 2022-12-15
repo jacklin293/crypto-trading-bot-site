@@ -1,6 +1,6 @@
-# crypto-trading-bot-api
+# DEPRECATED
 
-TODO
+This is an experimental repo and no longer maintained.
 
 # Set up the environment
 
